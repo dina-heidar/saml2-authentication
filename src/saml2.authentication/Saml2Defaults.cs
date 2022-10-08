@@ -1,5 +1,4 @@
-﻿// MIT License
-// Copyright (c) 2019 Dina Heidar
+﻿// Copyright (c) 2019 Dina Heidar
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -33,5 +32,27 @@ namespace Saml2Core
         /// The display name
         /// </summary>
         public const string DisplayName = "Saml2";
+
+        /// <summary>
+        /// Constant used to identify state in openIdConnect protocol message.
+        /// </summary>
+        public static readonly string AuthenticationPropertiesKey = "Saml2.AuthenticationProperties";
+
+        /// <summary>
+        /// The prefix used to for the nonce in the cookie.
+        /// </summary>
+        public static readonly string CookieNoncePrefix = ".AspNetCore.Saml2.Nonce.";
+
+        /// <summary>
+        /// The property for the RedirectUri that was used when asking for a 'authorizationCode'.
+        /// </summary>
+        public static readonly string RedirectUriForCodePropertiesKey = "Saml2.Code.RedirectUri";
+
+        /// <summary>
+        /// Constant used to identify userstate inside AuthenticationProperties 
+        /// that have been serialized in the 'state' parameter.
+        /// </summary>
+        public static readonly string UserstatePropertiesKey = "Saml2.Userstate";
     }
 }
+

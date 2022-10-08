@@ -1,5 +1,4 @@
-﻿// MIT License
-// Copyright (c) 2019 Dina Heidar
+﻿// Copyright (c) 2019 Dina Heidar
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -41,20 +40,13 @@ namespace Saml2Core
                 return;
             }
 
-
-
-
-
-            options.AccessDeniedPath = new PathString(options.AccessDeniedPath.Value);
-            options.Authority = options.Authority;
-            options.AutomaticRefreshInterval = StringHelpers.ParseValueOrDefault(null, _invariantTimeSpanParse, options.AutomaticRefreshInterval);
             options.BackchannelTimeout = StringHelpers.ParseValueOrDefault(null, _invariantTimeSpanParse, options.BackchannelTimeout);
             options.CallbackPath = new PathString(options.CallbackPath.Value);
             options.ClaimsIssuer = options.ClaimsIssuer;
 
-            SetCookieFromConfig(configSection.GetSection(nameof(options.CorrelationCookie)), options.CorrelationCookie);
+            //SetCookieFromConfig(configSection.GetSection(nameof(options.CorrelationCookie)), options.CorrelationCookie);
 
-            options.DisableTelemetry = options.DisableTelemetry;
+          
             options.ForwardAuthenticate = options.ForwardAuthenticate;
             options.ForwardChallenge = options.ForwardChallenge;
             options.ForwardDefault = options.ForwardDefault;
@@ -62,30 +54,23 @@ namespace Saml2Core
             options.ForwardSignIn = options.ForwardSignIn;
             options.ForwardSignOut = options.ForwardSignOut;
 
-            options.MaxAge = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, options.MaxAge);
+            //options.MaxAge = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, options.MaxAge);
             options.MetadataAddress = options.MetadataAddress;
 
-            SetCookieFromConfig(configSection.GetSection(nameof(options.NonceCookie)), options.NonceCookie);
+            //SetCookieFromConfig(configSection.GetSection(nameof(options.NonceCookie)), options.NonceCookie);
 
-            options.Prompt = configSection[nameof(options.Prompt)] ?? options.Prompt;
-            options.RefreshInterval = StringHelpers.ParseValueOrDefault(null, _invariantTimeSpanParse, options.RefreshInterval);
-            options.RefreshOnIssuerKeyNotFound = StringHelpers.ParseValueOrDefault(configSection[nameof(options.RefreshOnIssuerKeyNotFound)], bool.Parse, options.RefreshOnIssuerKeyNotFound);
-            options.RemoteAuthenticationTimeout = StringHelpers.ParseValueOrDefault(configSection[nameof(options.RemoteAuthenticationTimeout)], _invariantTimeSpanParse, options.RemoteAuthenticationTimeout);
-            options.RemoteSignOutPath = new PathString(configSection[nameof(options.RemoteSignOutPath)] ?? options.RemoteSignOutPath.Value);
-            options.RequireHttpsMetadata = StringHelpers.ParseValueOrDefault(configSection[nameof(options.RequireHttpsMetadata)], bool.Parse, options.RequireHttpsMetadata);
-            options.Resource = options.Resource;
-            options.ResponseMode = options.ResponseMode;
-            options.ResponseType = options.ResponseType;
-            options.ReturnUrlParameter = configSection[nameof(options.ReturnUrlParameter)] ?? options.ReturnUrlParameter;
-            options.SaveTokens = StringHelpers.ParseValueOrDefault(configSection[nameof(options.SaveTokens)], bool.Parse, options.SaveTokens);
-
-
-            options.SignedOutCallbackPath = options.SignedOutCallbackPath.Value;
+           
+            options.RemoteAuthenticationTimeout = StringHelpers.ParseValueOrDefault(null, _invariantTimeSpanParse, options.RemoteAuthenticationTimeout);
+            options.RemoteSignOutPath =  options.RemoteSignOutPath.Value;
+            options.RequireHttpsMetadata = options.RequireHttpsMetadata;
+           
+           
+            options.SaveTokens =  options.SaveTokens;
+            options.SignOutPath = options.SignOutPath.Value;
             options.SignedOutRedirectUri = options.SignedOutRedirectUri;
             options.SignInScheme = options.SignInScheme;
-            options.SignOutScheme = options.SignOutScheme;
-            options.SkipUnrecognizedRequests = StringHelpers.ParseValueOrDefault(configSection[nameof(options.SkipUnrecognizedRequests)], bool.Parse, options.SkipUnrecognizedRequests);
-            options.UseTokenLifetime = StringHelpers.ParseValueOrDefault(configSection[nameof(options.UseTokenLifetime)], bool.Parse, options.UseTokenLifetime);
+            options.SignOutScheme = options.SignOutScheme;           
+            options.UseTokenLifetime = options.UseTokenLifetime;
         }
 
         public void Configure(Saml2Options options)

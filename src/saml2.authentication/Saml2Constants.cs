@@ -22,7 +22,24 @@
 
 namespace Saml2Core
 {
-    public class RequestAuthn
+    public class Saml2Constants
     {
+        public static class Parameters
+        {
+            public const string SamlRequest = "SAMLRequest";
+            public const string RelayState = "RelayState";
+            public const string SigAlg = "SigAlg";
+            public const string Signature = "Signature";
+            public const string SamlResponse = "SAMLResponse";
+        }
+        public static class Tracing
+        {
+            public static readonly string Basic = Saml2Core.Tracing.TraceNames.Basic;
+            public static readonly string Stores = Saml2Core.Tracing.TraceNames.Store;
+            public static readonly string Cache = Saml2Core.Tracing.TraceNames.Cache;
+            public static readonly string Validation = Saml2Core.Tracing.TraceNames.Validation;
+            public static readonly string Services = Saml2Core.Tracing.TraceNames.Services;
+            public static readonly string ServiceVersion = Saml2Core.Tracing.ServiceVersion;
+        }
     }
 }
