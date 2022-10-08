@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Description>ASP.NET Core middleware that enables an application to support the SAML2 SSO authentication workflow. This middleware is opensource (free to use) and is not dependent on any .NET Framework libraries. It has been tested with ADFS and IdentityServer4 as well.</Description>
+		<TargetFrameworks>net6.0;netstandard2.1</TargetFrameworks>
+		<RootNamespace>Saml2Core</RootNamespace>
+		<Nullable>enable</Nullable>
+		<IsTrimmable>true</IsTrimmable>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<PackageTags>authentication;security;saml2;.net core 2.1, .net core 2.2, saml2 core, saml2.core, saml, saml SSO, SSO, adfs</PackageTags>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<Version>4.0.0</Version>
+		<PackageLicenseUrl>https://mit-license.org/</PackageLicenseUrl>
+		<Authors>Dina Heidar</Authors>
+		<Company></Company>
+		<AssemblyVersion>4.0.0.0</AssemblyVersion>
+		<FileVersion>4.0.0.0</FileVersion>
+		<PackageProjectUrl>https://github.com/dina-heidar/saml2-authentication</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/dina-heidar/saml2-authentication</RepositoryUrl>
+		<NeutralLanguage>en</NeutralLanguage>
+		<PackageReleaseNotes>Linux metadata file fix</PackageReleaseNotes>
+		<RepositoryType>Git</RepositoryType>
+	</PropertyGroup>
+
+	<ItemGroup>
+
+		<PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.2.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens.Saml" Version="6.23.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\saml-metadata\src\MetadataBuilder\MetadataBuilder.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EditorConfigFiles Remove="C:\Users\dinah\source\repos\Saml2\src\saml2.authentication\.editorconfig" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="C:\Users\dinah\source\repos\Saml2\src\saml2.authentication\.editorconfig" />
+	</ItemGroup>
+
+</Project>
