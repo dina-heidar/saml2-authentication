@@ -29,6 +29,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.2" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens.Saml" Version="6.23.1" />
@@ -38,5 +39,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\saml-metadata\src\MetadataBuilder\MetadataBuilder.csproj" />
   </ItemGroup>
+
+ 
 
 </Project>

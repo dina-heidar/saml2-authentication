@@ -24,16 +24,12 @@ using System;
 
 namespace Saml2Core
 {
-    internal static class StringHelpers
+    internal class Saml2CoreException : Exception
     {
-        public static T ParseValueOrDefault<T>(string? stringValue, Func<string, T> parser, T defaultValue)
-        {
-            if (string.IsNullOrEmpty(stringValue))
-            {
-                return defaultValue;
-            }
+        public Saml2CoreException(string message)
+            : base(message) { }
 
-            return parser(stringValue);
-        }
+        public Saml2CoreException(string message, Exception innerException)
+            : base(message, innerException) { }
     }
 }

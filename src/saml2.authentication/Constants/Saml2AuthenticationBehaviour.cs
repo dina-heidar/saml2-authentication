@@ -22,24 +22,22 @@
 
 namespace Saml2Core
 {
-    public class Saml2Constants
+    /// <summary>
+    /// Lists the different authentication methods used to
+    /// redirect the user agent to the identity provider.
+    /// </summary>
+    public enum Saml2AuthenticationBehaviour
     {
-        public static class Parameters
-        {
-            public const string SamlRequest = "SAMLRequest";
-            public const string RelayState = "RelayState";
-            public const string SigAlg = "SigAlg";
-            public const string Signature = "Signature";
-            public const string SamlResponse = "SAMLResponse";
-        }
-        public static class Tracing
-        {
-            public static readonly string Basic = Saml2Core.Tracing.TraceNames.Basic;
-            public static readonly string Stores = Saml2Core.Tracing.TraceNames.Store;
-            public static readonly string Cache = Saml2Core.Tracing.TraceNames.Cache;
-            public static readonly string Validation = Saml2Core.Tracing.TraceNames.Validation;
-            public static readonly string Services = Saml2Core.Tracing.TraceNames.Services;
-            public static readonly string ServiceVersion = Saml2Core.Tracing.ServiceVersion;
-        }
+        /// <summary>
+        /// Emits a 302 response to redirect the user agent to
+        /// the Saml2 provider using a GET request.
+        /// </summary>
+        RedirectGet = 0,
+
+        /// <summary>
+        /// Emits an HTML form to redirect the user agent to
+        /// theSaml2 provider using a POST request.
+        /// </summary>
+        FormPost = 1
     }
 }

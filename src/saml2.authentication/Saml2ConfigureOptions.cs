@@ -24,7 +24,6 @@ using System;
 using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using Saml2Core.Helpers;
 
 namespace Saml2Core
 {
@@ -33,6 +32,12 @@ namespace Saml2Core
         private static readonly Func<string, TimeSpan> _invariantTimeSpanParse = (string timespanString) => TimeSpan.Parse(timespanString, CultureInfo.InvariantCulture);
         private static readonly Func<string, TimeSpan?> _invariantNullableTimeSpanParse = (string timespanString) => TimeSpan.Parse(timespanString, CultureInfo.InvariantCulture);
 
+        /// <summary>
+        /// Configures the specified name.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="options">The options.</param>
+        /// <returns></returns>
         public void Configure(string? name, Saml2Options options)
         {
             if (string.IsNullOrEmpty(name))
@@ -40,43 +45,83 @@ namespace Saml2Core
                 return;
             }
 
+            //inherited
             options.BackchannelTimeout = StringHelpers.ParseValueOrDefault(null, _invariantTimeSpanParse, options.BackchannelTimeout);
             options.CallbackPath = new PathString(options.CallbackPath.Value);
             options.ClaimsIssuer = options.ClaimsIssuer;
-
-            //SetCookieFromConfig(configSection.GetSection(nameof(options.CorrelationCookie)), options.CorrelationCookie);
-
-          
             options.ForwardAuthenticate = options.ForwardAuthenticate;
             options.ForwardChallenge = options.ForwardChallenge;
             options.ForwardDefault = options.ForwardDefault;
             options.ForwardForbid = options.ForwardForbid;
             options.ForwardSignIn = options.ForwardSignIn;
             options.ForwardSignOut = options.ForwardSignOut;
-
-            //options.MaxAge = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, options.MaxAge);
-            options.MetadataAddress = options.MetadataAddress;
-
-            //SetCookieFromConfig(configSection.GetSection(nameof(options.NonceCookie)), options.NonceCookie);
-
-           
             options.RemoteAuthenticationTimeout = StringHelpers.ParseValueOrDefault(null, _invariantTimeSpanParse, options.RemoteAuthenticationTimeout);
-            options.RemoteSignOutPath =  options.RemoteSignOutPath.Value;
-            options.RequireHttpsMetadata = options.RequireHttpsMetadata;
-           
-           
-            options.SaveTokens =  options.SaveTokens;
-            options.SignOutPath = options.SignOutPath.Value;
+            options.RemoteSignOutPath = options.RemoteSignOutPath.Value;
+            options.SaveTokens = options.SaveTokens;
             options.SignedOutRedirectUri = options.SignedOutRedirectUri;
             options.SignInScheme = options.SignInScheme;
-            options.SignOutScheme = options.SignOutScheme;           
+
+
+            SetCookie(options.CorrelationCookie);
+            options.MaxAge = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, options.MaxAge);
+            SetCookie(options.Saml2CoreCookie);
+
+
+            //saml2 options
+            options.ArtifactResolutionPath = options.ArtifactResolutionPath;
+            options.AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex;
+            options.AssertionConsumerServicePath = options.AssertionConsumerServicePath;
+            options.AuthenticationChannel = options.AuthenticationChannel;
+            options.AuthenticationMethod = options.AuthenticationMethod;
+            options.AuthenticationScheme = options.AuthenticationScheme;
+            options.CookieConsentNeeded = options.CookieConsentNeeded;
+            options.CreateMetadataFile = options.CreateMetadataFile;
+            options.DefaultMetadataFolderLocation = options.DefaultMetadataFolderLocation;
+            options.DefaultMetadataFileName = options.DefaultMetadataFileName;
+            options.DefaultRedirectUrl = options.DefaultRedirectUrl;
+            options.EntityId = options.EntityId;
+            options.ForceAuthn = options.ForceAuthn;
+            options.IdentityProviderMetadata = options.IdentityProviderMetadata;
+            options.IsPassive = options.IsPassive;
+            options.LogoutChannel = options.LogoutChannel;
+            options.LogoutMethod = options.LogoutMethod;
+            options.RemoteSignOutPath = options.RemoteSignOutPath;
+            options.RequireHttpsMetadata = options.RequireHttpsMetadata;
+            options.RequireMessageSigned = options.RequireMessageSigned;
+            options.ResponseProtocolBinding = options.ResponseProtocolBinding;
+            options.Saml2CoreCookieLifetime = options.Saml2CoreCookieLifetime;
+            options.Saml2CoreCookieName = options.Saml2CoreCookieName;
+            options.SignOutPath = options.SignOutPath.Value;
+            options.SignedOutRedirectUri = options.SignedOutRedirectUri;
+            options.SignOutScheme = options.SignOutScheme;
+            options.SigningCertificate = options.SigningCertificate;
             options.UseTokenLifetime = options.UseTokenLifetime;
+            options.VerifySignatureOnly = options.VerifySignatureOnly;
+            options.WantAssertionsSigned = options.WantAssertionsSigned;
+            options.SignOutQueryString = options.SignOutQueryString;
         }
 
+        private static void SetCookie(CookieBuilder cookieBuilder)
+        {
+            // Override the existing defaults when values are set instead of constructing
+            // an entirely new CookieBuilder.
+            cookieBuilder.Domain = cookieBuilder.Domain;
+            cookieBuilder.HttpOnly = cookieBuilder.HttpOnly;
+            cookieBuilder.IsEssential = cookieBuilder.IsEssential;
+            cookieBuilder.Expiration = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, cookieBuilder.Expiration);
+            cookieBuilder.MaxAge = StringHelpers.ParseValueOrDefault<TimeSpan?>(null, _invariantNullableTimeSpanParse, cookieBuilder.MaxAge);
+            cookieBuilder.Name = cookieBuilder.Name;
+            cookieBuilder.Path = cookieBuilder.Path;
+            cookieBuilder.SameSite = cookieBuilder.SameSite;
+            cookieBuilder.SecurePolicy = cookieBuilder.SecurePolicy;
+        }
+
+        /// <inheritdoc />
         public void Configure(Saml2Options options)
         {
-            throw new NotImplementedException();
+            Configure(Options.DefaultName, options);
         }
     }
 }
+
 

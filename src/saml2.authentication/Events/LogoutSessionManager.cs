@@ -20,20 +20,39 @@
 // SOFTWARE.
 //
 
-using System;
+//using System;
+//using System.Collections.Generic;
+//using System.Linq;
 
-namespace Saml2Core
-{
-    internal static class StringHelpers
-    {
-        public static T ParseValueOrDefault<T>(string? stringValue, Func<string, T> parser, T defaultValue)
-        {
-            if (string.IsNullOrEmpty(stringValue))
-            {
-                return defaultValue;
-            }
+//namespace Saml2Core.Events
+//{
+//    internal class LogoutSessionManager
+//    {
+//        // yes - that needs to be thread-safe, distributed etc (it's a sample)
+//        List<Session> _sessions = new List<Session>();
 
-            return parser(stringValue);
-        }
-    }
-}
+//        public void Add(string sub, string sid)
+//        {
+//            _sessions.Add(new Session { Sub = sub, Sid = sid });
+//        }
+
+//        public bool IsLoggedOut(string sub, string sid)
+//        {
+//            var matches = _sessions.Any(s => s.IsMatch(sub, sid));
+//            return matches;
+//        }
+
+//        private class Session
+//        {
+//            public string Sub { get; set; }
+//            public string Sid { get; set; }
+
+//            public bool IsMatch(string sub, string sid)
+//            {
+//                return (Sid == sid && Sub == sub) ||
+//                       (Sid == sid && Sub == null) ||
+//                       (Sid == null && Sub == sub);
+//            }
+//        }
+//    }
+//}

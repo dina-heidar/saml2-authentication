@@ -20,9 +20,13 @@
 // SOFTWARE.
 //
 
+
 namespace Saml2Core
 {
-    public class RequestAuthn
+    public enum Saml2LogoutChannel
     {
+        FrontChannel = 0,
+
+        BackChannel = 1
     }
 }

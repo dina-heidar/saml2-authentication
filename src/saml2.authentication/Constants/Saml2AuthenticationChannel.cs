@@ -20,20 +20,12 @@
 // SOFTWARE.
 //
 
-using System;
-
 namespace Saml2Core
 {
-    internal static class StringHelpers
+    public enum Saml2AuthenticationChannel
     {
-        public static T ParseValueOrDefault<T>(string? stringValue, Func<string, T> parser, T defaultValue)
-        {
-            if (string.IsNullOrEmpty(stringValue))
-            {
-                return defaultValue;
-            }
+        FrontChannel = 0,
 
-            return parser(stringValue);
-        }
+        BackChannel = 1
     }
 }

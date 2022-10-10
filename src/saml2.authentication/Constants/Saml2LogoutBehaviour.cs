@@ -20,20 +20,14 @@
 // SOFTWARE.
 //
 
-using System;
 
 namespace Saml2Core
 {
-    internal static class StringHelpers
+    public enum Saml2LogoutBehaviour
     {
-        public static T ParseValueOrDefault<T>(string? stringValue, Func<string, T> parser, T defaultValue)
-        {
-            if (string.IsNullOrEmpty(stringValue))
-            {
-                return defaultValue;
-            }
-
-            return parser(stringValue);
-        }
+        RedirectGet = 0,
+        FormPost = 1,
+        Artififact = 2,
+        SOAP = 3
     }
 }
