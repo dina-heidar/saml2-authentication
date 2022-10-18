@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -31,7 +32,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Saml.MetadataBuilder;
+using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
 {
@@ -61,21 +64,19 @@ namespace Saml2Core
         {
             _logger = loggerFactory.CreateLogger<Saml2Handler>();
             _saml2Service = saml2Service;
+
+            Options.AssertionConsumerServiceUrl = (Options.AssertionConsumerServiceUrl == null ?
+                new Uri(new Uri(CurrentUri), Options.CallbackPath) : Options.AssertionConsumerServiceUrl);
         }
-
-
         protected override Task<HandleRequestResult> HandleRemoteAuthenticateAsync()
         {
 
             throw new NotImplementedException();
         }
-
         Task IAuthenticationSignOutHandler.SignOutAsync(AuthenticationProperties properties)
         {
             throw new NotImplementedException();
         }
-
-
         /// <summary>
         /// The handler calls methods on the events which give the 
         /// application control at certain points where processing 
@@ -122,39 +123,136 @@ namespace Saml2Core
         /// </returns>
         protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
         {
-            if (Options.Configuration == null)
-            {
-                Options.Configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
-            }
+            Logger.EnteringOpenIdAuthenticationHandlerHandleUnauthorizedAsync(GetType().FullName!);
 
+            // order for local RedirectUri
+            // 1. challenge.Properties.RedirectUri
+            // 2. CurrentUri if RedirectUri is not set)
             if (string.IsNullOrEmpty(properties.RedirectUri))
             {
-                properties.RedirectUri = CurrentUri;
+                properties.RedirectUri = OriginalPathBase + Options.CallbackPath;
             }
 
-            //string assertionHostUrl = new Uri(CurrentUri).Scheme + "://" + new Uri(CurrentUri).Authority;
-            var sendAssertionTo = new Uri(new Uri(CurrentUri), Options.CallbackPath).AbsoluteUri;
+            Logger.PostAuthenticationLocalRedirect(properties.RedirectUri);
 
-            //prepare AuthnRequest ID, assertion Url and Relay State to prepare for Idp call 
-            string authnRequestId = "id" + Guid.NewGuid().ToString("N");
-            string base64AuthnRequestId = authnRequestId.Base64Encode();
-            string assertionConsumerServiceUrl = sendAssertionTo;
+            if (_configuration == null && Options.ConfigurationManager != null)
+            {
+                _configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
+                Options.Configuration = _configuration;
+            }
 
+            //prepare            
+            //get the assertion service Url
+            var saml2ResponseUrl = BuildRedirectUri(Options.CallbackPath);
+
+            //generate a nonce of random bytes and retain it in a browser cookie
+            //and encode this nonce and other information in the authentication properties
+            //'properties.Dictionary[correlationKey] = correlationId;'
+            //this will later be passed in a state query string parameter to the
+            //identity provider. The identity provider will return this value right
+            //back to your application after authenticating the user.         
             GenerateCorrelationId(properties);
             string relayState = Options.StateDataFormat.Protect(properties);
 
-            //cleanup and remove existing cookies            
-            Response.DeleteAllRequestIdCookies(Context.Request, Options.Saml2CoreCookieName);
+            //get the identity provider url - where the authn request needs to be sent to
+            var idpConfiguration = _configuration.Items
+                    .FirstOrDefault(i => i.GetType() == typeof(IDPSSODescriptor)) as IDPSSODescriptor;
+           
+            //maybe add an option to select a specific one in case there are many?
+            var idpSingleServiceSignOnUrls = idpConfiguration.SingleSignOnServices;
 
-            //create and append new response cookie
-            Options.Saml2CoreCookie.Name = Options.Saml2CoreCookieName + "." + relayState.GetHashCode();
-            Response.Cookies.Append(Options.Saml2CoreCookie.Name, base64AuthnRequestId, Options.Saml2CoreCookie.Build(Context));
+            //TODO - Create saml cookie session to check against then delete it
+            //According to the SAML specification, the SAML response returned by the IdP
+            //should have an InResponseTo field that matches the authn request ID. This ties the SAML
+            //response to the authn request. The authn request ID is saved in the SAML session
+            //state so it can be checked against the InResponseTo.
+           
 
-            //create authnrequest call
-            string authnRequest = await _saml2Service.CreateAuthnRequestAsync();
+            //get the string outer xml
+            //add relay state as query string
+            var request = new StringBuilder();
 
-            //call idp
-            Response.Redirect(authnRequest);
+            //if authnRequest is redirect
+            if (Options.AuthenticationMethod == Saml2AuthenticationBehaviour.RedirectGet)
+            {
+                //get the identity provider http-redirect sso endpoint
+                var idpSingleServiceGetSignOnUrl = idpSingleServiceSignOnUrls
+                    .FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Redirect).Location;
+
+                var assertionConsumerServiceUrl = new Uri(new Uri(CurrentUri), Options.CallbackPath).AbsoluteUri;
+
+                
+
+                //string authnRequestIdOld = "id" + Guid.NewGuid().ToString("N");
+                var authnRequestOld = _saml2Service.CreateAuthnRequest(Options,
+                    authnRequestIdOld, relayState, assertionConsumerServiceUrlOld, idpSingleServiceGetSignOnUrl);
+                //call idp
+                Response.Redirect(authnRequestOld);
+
+            //    //create authnrequest xml object
+            //    //var authnRequestXmlDoc = await _saml2Service.CreateAuthnRequestAsync(saml2ResponseUrl, idpSingleServiceGetSignOnUrl);
+
+            //    var result = authnRequestXmlDoc.OuterXml;
+
+            //    //convert to base64
+            //    request.AddMessageParameter(result, null);
+
+            //    //add relay state as base64
+            //    request.AddRelayState(result, relayState);
+
+            //    if (Options.SigningCertificate != null && Options.AuthenticationRequestSigned)
+            //    {
+            //        (var key, var signatureMethod, var keyName) =
+            //            XmlDocumentExtensions.SetSignatureAlgorithm(Options.SigningCertificate);
+
+            //        //add signAlg
+            //        request.AddSignAlg(result, signatureMethod);
+
+            //        //add signature to query string
+            //        request = _saml2Service.AppendQuerySignature(request, key);
+            //    }
+            //    //TODO
+            //    var test = $"{idpSingleServiceGetSignOnUrl}?{request}";
+            //    //send to idp as redirect
+            //    Response.Redirect($"{idpSingleServiceGetSignOnUrl}?{request}");
+            //}
+            ////it is a post method
+            //else
+            //{
+            //    //get the identity provider http-post sso endpoint
+            //    var idpSingleServicePostSignOnUrl = idpSingleServiceSignOnUrls
+            //        .FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Post).Location;
+
+            //    //create authnrequest xml object
+            //    var authnRequestXmlDoc = await _saml2Service.CreateAuthnRequestAsync(saml2ResponseUrl, idpSingleServicePostSignOnUrl);
+
+            //    if (Options.SigningCertificate != null && Options.AuthenticationRequestSigned)
+            //    {
+            //        //sign xml document
+            //        authnRequestXmlDoc.AddXmlSignature(Options.SigningCertificate);
+            //    }
+
+            //    var authnRequestEncoded = authnRequestXmlDoc.OuterXml.EncodeDeflateMessage();
+
+            //    var parameters = new Dictionary<string, string>
+            //    {
+            //        { Saml2Constants.Parameters.SamlRequest, authnRequestEncoded }
+            //    };
+
+            //    var content = _saml2Service.BuildFormPost(idpSingleServicePostSignOnUrl, parameters);
+            //    var buffer = Encoding.UTF8.GetBytes(content);
+
+            //    Response.ContentLength = buffer.Length;
+            //    Response.ContentType = "text/html;charset=UTF-8";
+
+            //    // Emit Cache-Control=no-cache to prevent client caching.             
+            //    Response.Headers.Add("Cache-Control", "no-cache, no-store");
+            //    Response.Headers.Add("Pragma","no-cache");
+            //    Response.Headers.Add("Expires", "Thu, 01 Jan 1970 00:00:00 GMT");
+
+            //    await Response.Body.WriteAsync(buffer, 0, buffer.Length);
+            //    return;
+            }
         }
 
 
@@ -254,281 +352,5 @@ namespace Saml2Core
             return true;
         }
     }
-
-
-    //    /// <summary>
-    //    /// Override this method to deal with 401 challenge concerns, if an authentication scheme in question
-    //    /// deals an authentication interaction as part of it's request flow. (like adding a response header, or
-    //    /// changing the 401 result to 302 of a login page or external sign-in location.)
-    //    /// </summary>
-    //    /// <param name="properties"></param>
-    //    /// <returns>
-    //    /// A Task.
-    //    /// </returns>
-    //    protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
-    //    {
-    //        if (Options.Configuration == null)
-    //        {
-    //            Options.Configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
-    //        }
-
-    //        if (string.IsNullOrEmpty(properties.RedirectUri))
-    //        {
-    //            properties.RedirectUri = CurrentUri;
-    //        }
-
-    //        //string assertionHostUrl = new Uri(CurrentUri).Scheme + "://" + new Uri(CurrentUri).Authority;
-    //        var sendAssertionTo = new Uri(new Uri(CurrentUri), Options.CallbackPath).AbsoluteUri;
-
-    //        //prepare AuthnRequest ID, assertion Url and Relay State to prepare for Idp call 
-    //        string authnRequestId = "id" + Guid.NewGuid().ToString("N");
-    //        string base64AuthnRequestId = authnRequestId.Base64Encode();
-    //        string assertionConsumerServiceUrl = sendAssertionTo;
-
-    //        GenerateCorrelationId(properties);
-    //        string relayState = Options.StateDataFormat.Protect(properties);
-
-    //        //cleanup and remove existing cookies            
-    //        Response.DeleteAllRequestIdCookies(Context.Request, Options.SamlCookieName);
-
-    //        //create and append new response cookie
-    //        Options.RequestCookieId.Name = Options.SamlCookieName + "." + relayState.GetHashCode();
-    //        Response.Cookies.Append(Options.RequestCookieId.Name, base64AuthnRequestId, Options.RequestCookieId.Build(Context));
-
-    //        //create authnrequest call
-    //        string authnRequest = _saml2Service.CreateAuthnRequest(Options, authnRequestId, relayState, assertionConsumerServiceUrl);
-
-    //        //call idp
-    //        Response.Redirect(authnRequest);
-    //    }
-
-    //    //response from identity provider hits here
-    //    /// <summary>
-    //    /// Authenticate the user identity with the identity provider.
-    //    /// The method process the request on the endpoint defined by CallbackPath.
-    //    /// </summary>
-    //    /// <returns></returns>
-    //    protected override async Task<HandleRequestResult> HandleRemoteAuthenticateAsync()
-    //    {
-    //        // assumption: if the ContentType is "application/x-www-form-urlencoded" it should be safe to read as it is small.
-    //        if (HttpMethods.IsPost(Request.Method)
-    //          && !string.IsNullOrEmpty(Request.ContentType)
-    //          // May have media/type; charset=utf-8, allow partial match.
-    //          && Request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)
-    //          && Request.Body.CanRead &&
-    //          Request.Path.Value.EndsWith(Options.CallbackPath, StringComparison.OrdinalIgnoreCase))
-    //        {
-    //            return await HandleSignIn();
-    //        }
-    //        else
-    //        {
-    //            return HandleRequestResult.Fail("an error occured");
-    //        }
-    //    }
-
-    //    /// <summary>
-    //    /// Handles the sign in.
-    //    /// </summary>
-    //    /// <returns></returns>
-    //    /// <exception cref="SecurityTokenException">No token validator was found for the given token.</exception>
-    //    private async Task<HandleRequestResult> HandleSignIn()
-    //    {
-    //        if (Request.Method != HttpMethods.Post)
-    //            return HandleRequestResult.Fail("Request method must be an HTTP-Post Method");
-
-    //        var form = await Request.ReadFormAsync();
-    //        var response = form[Saml2Constants.Parameters.SamlResponse];
-    //        var relayState = form[Saml2Constants.Parameters.RelayState].ToString()?.DeflateDecompress();
-
-    //        AuthenticationProperties authenticationProperties = Options.StateDataFormat.Unprotect(relayState);
-
-    //        try
-    //        {
-    //            if (authenticationProperties == null)
-    //            {
-    //                if (!Options.AllowUnsolicitedLogins)
-    //                {
-    //                    return HandleRequestResult.Fail("Unsolicited logins are not allowed.");
-    //                }
-    //            }
-
-    //            if (authenticationProperties.Items.TryGetValue(CorrelationProperty, out string correlationId)
-    //                    && !ValidateCorrelationId(authenticationProperties))
-    //            {
-    //                return HandleRequestResult.Fail("Correlation failed.", authenticationProperties);
-    //            }
-
-    //            string base64EncodedSamlResponse = response;
-    //            ResponseType idpSamlResponseToken = _saml2Service.GetSamlResponseToken(base64EncodedSamlResponse, Saml2Constants.ResponseTypes.AuthnResponse, Options);
-
-    //            IRequestCookieCollection cookies = Request.Cookies;
-    //            string originalSamlRequestId = cookies[cookies.Keys.FirstOrDefault(key => key.StartsWith(Options.SamlCookieName))];
-
-    //            _saml2Service.CheckIfReplayAttack(idpSamlResponseToken.InResponseTo, originalSamlRequestId);
-    //            _saml2Service.CheckStatus(idpSamlResponseToken);
-
-    //            string token = _saml2Service.GetAssertion(idpSamlResponseToken, Options);
-
-    //            AssertionType assertion = new AssertionType();
-    //            XmlSerializer xmlSerializer = new XmlSerializer(typeof(AssertionType));
-    //            using (MemoryStream memStm = new MemoryStream(Encoding.UTF8.GetBytes(token)))
-    //            {
-    //                assertion = (AssertionType)xmlSerializer.Deserialize(memStm);
-    //            }
-
-    //            if (Options.WantAssertionsSigned)
-    //            {
-    //                var doc = new XmlDocument
-    //                {
-    //                    XmlResolver = null,
-    //                    PreserveWhitespace = true
-    //                };
-    //                doc.LoadXml(token);
-
-    //                if (!_saml2Service.ValidateX509CertificateSignature(doc, Options))
-    //                {
-    //                    throw new Exception("Assertion signature is not valid");
-    //                }
-    //            }
-
-    //            AuthnStatementType session = new AuthnStatementType();
-
-    //            if (assertion.Items.Any(x => x.GetType() == typeof(AuthnStatementType)))
-    //            {
-    //                session = (AuthnStatementType)assertion.Items.FirstOrDefault(x => x.GetType() == typeof(AuthnStatementType));
-    //            }
-
-    //            if (assertion.Subject.Items.Any(x => x.GetType() == typeof(NameIDType)))
-    //            {
-    //                Options.NameIDType = (NameIDType)assertion.Subject.Items.FirstOrDefault(x => x.GetType() == typeof(NameIDType));
-    //            }
-
-    //            if (_configuration == null)
-    //            {
-    //                _configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
-    //            }
-
-    //            var tvp = Options.TokenValidationParameters.Clone();
-    //            var validator = Options.Saml2SecurityTokenHandler;
-    //            ClaimsPrincipal principal = null;
-    //            SecurityToken parsedToken = null;
-
-    //            var issuers = new[] { _configuration.Issuer };
-    //            tvp.ValidateIssuerSigningKey = Options.WantAssertionsSigned;
-    //            tvp.ValidateTokenReplay = !Options.IsPassive;
-    //            tvp.ValidateIssuer = true;
-    //            tvp.ValidateAudience = true;
-    //            tvp.ValidIssuers = (tvp.ValidIssuers == null ? issuers : tvp.ValidIssuers.Concat(issuers));
-    //            tvp.IssuerSigningKeys = (tvp.IssuerSigningKeys == null ? _configuration.SigningKeys : tvp.IssuerSigningKeys.Concat(_configuration.SigningKeys));
-
-    //            if (!Options.WantAssertionsSigned) // in case they aren't signed
-    //            {
-    //                tvp.RequireSignedTokens = false;
-    //            }
-
-    //            if (validator.CanReadToken(token))
-    //            {
-    //                principal = validator.ValidateToken(token, tvp, out parsedToken);
-    //            }
-
-    //            if (principal == null)
-    //            {
-    //                throw new SecurityTokenException("No token validator was found for the given token.");
-    //            }
-
-    //            if (Options.UseTokenLifetime && parsedToken != null)
-    //            {
-    //                // Override any session persistence to match the token lifetime.
-    //                var issued = parsedToken.ValidFrom;
-    //                if (issued != DateTime.MinValue)
-    //                {
-    //                    authenticationProperties.IssuedUtc = issued.ToUniversalTime();
-    //                }
-    //                var expires = parsedToken.ValidTo;
-    //                if (expires != DateTime.MinValue)
-    //                {
-    //                    authenticationProperties.ExpiresUtc = expires.ToUniversalTime();
-    //                }
-    //                authenticationProperties.AllowRefresh = false;
-    //            }
-
-    //            ClaimsIdentity identity = new ClaimsIdentity(principal.Claims, Scheme.Name);
-
-    //            session.SessionIndex = !String.IsNullOrEmpty(session.SessionIndex) ? session.SessionIndex : assertion.ID;
-    //            //get the session index from assertion so you can use it to logout later
-    //            identity.AddClaim(new Claim(Saml2ClaimTypes.SessionIndex, session.SessionIndex));
-    //            if (principal.Claims.Any(c => c.Type == ClaimTypes.NameIdentifier))
-    //            {
-    //                identity.AddClaim(new Claim(ClaimTypes.Name, principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier).Value));
-    //            }
-    //            string redirectUrl = !string.IsNullOrEmpty(authenticationProperties.RedirectUri) ? authenticationProperties.RedirectUri : Options.CallbackPath.ToString();
-    //            Context.Response.Redirect(redirectUrl, true);
-    //            Context.User = new ClaimsPrincipal(identity);
-    //            await Context.SignInAsync(Options.SignInScheme, Context.User, authenticationProperties);
-    //            return HandleRequestResult.Success(new AuthenticationTicket(Context.User, authenticationProperties, Scheme.Name));
-    //        }
-    //        catch (Exception exception)
-    //        {
-    //            return HandleRequestResult.Fail(exception, authenticationProperties);
-    //        }
-    //    }
-
-    //    /// <summary>
-    //    /// Signout behavior.
-    //    /// </summary>
-    //    /// <param name="properties">The <see cref="T:Microsoft.AspNetCore.Authentication.AuthenticationProperties" /> that contains the extra meta-data arriving with the authentication.</param>
-    //    /// <returns>
-    //    /// A task.
-    //    /// </returns>
-    //    public async Task SignOutAsync(AuthenticationProperties properties)
-    //    {
-    //        properties.Items["redirectUri"] = Options.SignOutPath;
-    //        bool forcedSignout = properties.GetParameter<bool>("forcedSignout");
-
-    //        var target = ResolveTarget(Options.ForwardSignOut);
-    //        if (target != null)
-    //        {
-    //            await Context.SignOutAsync(target, properties);
-    //            return;
-    //        }
-    //        if (Options.Configuration == null)
-    //        {
-    //            Options.Configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
-    //        }
-
-    //        string sendSignoutTo = new Uri(new Uri(CurrentUri), Options.SignOutPath).AbsoluteUri;
-
-    //        //prepare AuthnRequest ID, assertion Url and Relay State to prepare for Idp call 
-    //        string logoutRequestId = "id" + Guid.NewGuid().ToString("N");
-    //        string base64AuthnRequestId = logoutRequestId.Base64Encode();
-
-    //        GenerateCorrelationId(properties);
-    //        string relayState = Options.StateDataFormat.Protect(properties);
-
-    //        //cleanup and remove existing cookies    
-    //        // remove here in case logout request isn't completed       
-    //        //Response.DeleteAllRequestIdCookies(Context.Request, Options.SamlCookieName);
-
-    //        //create and append new response cookie
-    //        Options.RequestCookieId.Name = Options.SamlCookieName + ".Signout" + "." + relayState.GetHashCode();
-    //        Response.Cookies.Append(Options.RequestCookieId.Name, base64AuthnRequestId, Options.RequestCookieId.Build(Context));
-    //        string logoutRequest = "/";
-    //        if (Options.hasCertificate)
-    //        {
-    //            //create logoutrequest call
-    //            logoutRequest = _saml2Service.CreateLogoutRequest(Options, logoutRequestId,
-    //                Context.User.FindFirst(Saml2ClaimTypes.SessionIndex).Value,
-    //                relayState, forcedSignout);
-    //        }
-    //        //call idp
-    //        Response.Redirect(logoutRequest, true);
-    //    }
-
-    //    /// <summary>
-    //    /// Handles the remote sign out asynchronous.
-    //    /// </summary>
-    //    /// <returns></returns>
-
-
 }
 

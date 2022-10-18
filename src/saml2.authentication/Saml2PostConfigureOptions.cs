@@ -65,6 +65,11 @@ namespace Saml2Core
         /// </exception>
         public void PostConfigure(string name, Saml2Options options)
         {
+            if (name is null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }          
+           
             options.DataProtectionProvider = options.DataProtectionProvider ?? _dp;
 
             if (string.IsNullOrEmpty(options.SignOutScheme))
@@ -95,19 +100,7 @@ namespace Saml2Core
                 !string.IsNullOrEmpty(options.EntityId))
             {
                 options.TokenValidationParameters.ValidAudience = options.EntityId;
-            }
-
-            //set the assertion consumer service path
-            //this will be used in the authnRequest
-            if (string.IsNullOrEmpty(options.AssertionConsumerServicePath.Value))
-            {
-                options.AssertionConsumerServicePath = options.CallbackPath;
-            }
-
-            if (options.SigningCertificate != null)
-            {
-                options.hasCertificate = true;
-            }
+            }                      
 
             if (options.Backchannel == null)
             {
@@ -124,24 +117,23 @@ namespace Saml2Core
                     options.ConfigurationManager =
                         new StaticConfigurationManager<EntityDescriptor>(options.Configuration);
                 }
-                else if (!string.IsNullOrEmpty(options.IdentityProviderMetadata))
+                else if (!string.IsNullOrEmpty(options.MetadataAddress))
                 {
                     var pattern = @"(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$";
-                    var result = Regex.IsMatch(options.IdentityProviderMetadata,
+                    var result = Regex.IsMatch(options.MetadataAddress,
                         pattern, RegexOptions.IgnoreCase);
-
 
                     if (result)
                     {
                         var httpsPattern = @"^(https:\/\/www\.|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$";
-                        var isHttpsRegexMatch = Regex.IsMatch(options.IdentityProviderMetadata, httpsPattern, RegexOptions.IgnoreCase);
+                        var isHttpsRegexMatch = Regex.IsMatch(options.MetadataAddress, httpsPattern, RegexOptions.IgnoreCase);
 
                         if (options.RequireHttpsMetadata && !isHttpsRegexMatch)
                         {
-                            throw new Saml2CoreException("The MetadataAddress must use 'https' unless disabled for development by setting RequireHttpsMetadata=false.");
+                            throw new Saml2Exception("The MetadataAddress must use 'https' unless disabled for development by setting RequireHttpsMetadata=false.");
                         }
                         options.ConfigurationManager = new ConfigurationManager<EntityDescriptor>
-                            (options.IdentityProviderMetadata, new MetadataReader(_mapper),
+                            (options.MetadataAddress, new MetadataReader(_mapper),
                            new HttpDocumentRetriever(options.Backchannel)
                            {
                                RequireHttps = options.RequireHttpsMetadata
@@ -149,8 +141,8 @@ namespace Saml2Core
                     }
                     else
                     {
-                        _idoc.GetDocumentAsync(options.IdentityProviderMetadata, default(CancellationToken));
-                        options.ConfigurationManager = new ConfigurationManager<EntityDescriptor>(options.IdentityProviderMetadata,
+                        _idoc.GetDocumentAsync(options.MetadataAddress, default(CancellationToken));
+                        options.ConfigurationManager = new ConfigurationManager<EntityDescriptor>(options.MetadataAddress,
                             new MetadataReader(_mapper), _idoc);
                     }
                 }

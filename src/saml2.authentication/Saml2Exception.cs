@@ -24,12 +24,12 @@ using System;
 
 namespace Saml2Core
 {
-    internal class Saml2CoreException : Exception
+    internal class Saml2Exception : Exception
     {
-        public Saml2CoreException(string message)
+        public Saml2Exception(string message)
             : base(message) { }
 
-        public Saml2CoreException(string message, Exception innerException)
+        public Saml2Exception(string message, Exception innerException)
             : base(message, innerException) { }
     }
 }

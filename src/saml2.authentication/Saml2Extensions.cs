@@ -22,16 +22,19 @@
 
 using System;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Protocols;
+using Saml.MetadataBuilder;
 
 namespace Saml2Core
 {
     /// <summary>
     /// 
     /// </summary>
-    public static class Saml2CoreExtensions
+    public static class Saml2Extensions
     {
 
         /// <summary>
@@ -73,17 +76,15 @@ namespace Saml2Core
         /// <returns></returns>
         public static AuthenticationBuilder AddSaml2(this AuthenticationBuilder builder,
             string authenticationScheme, string displayName, Action<Saml2Options> configureOptions)
-        {
+        {           
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<Saml2Options>, Saml2ConfigureOptions>());
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<Saml2Options>, Saml2PostConfigureOptions>());
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ISaml2Service, Saml2Service>());
-            //builder.Services.AddTransient<Saml2CookieEventHandler>();
-            //builder.Services.AddSingleton<LogoutSessionManager>();
-            //builder.Services.TryAddEnumerable(ServiceDescriptor.Transient<IDocumentRetriever, FileDocumentRetriever>());
-            //builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpContextAccessor, HttpContextAccessor>());
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ISaml2Service, Saml2Service>());         
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Transient<IDocumentRetriever, FileDocumentRetriever>());
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpContextAccessor, HttpContextAccessor>());
+            builder.Services.AddSamlMetadatBuilder();
 
             return builder.AddRemoteScheme<Saml2Options, Saml2Handler>(authenticationScheme, displayName, configureOptions);
-
         }
     }
 }

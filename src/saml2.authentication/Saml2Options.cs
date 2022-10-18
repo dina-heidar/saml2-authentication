@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using MetadataBuilder.Schema.Metadata;
 using Microsoft.AspNetCore.Authentication;
@@ -31,6 +32,7 @@ using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Tokens.Saml2;
 using Saml.MetadataBuilder;
+using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
 {
@@ -59,18 +61,24 @@ namespace Saml2Core
             RequireHttpsMetadata = true;
             //RequestedAuthnContext =
             ForceAuthn = true;
-            NameIDType = new NameIDType();
+            NameId = new NameId
+            {
+                Format = NameIDFormats.Unspecified,
+                SpNameQualifier =null,
+                NameQualifier = null,
+                SpProvidedId = null,
+                Value = EntityId
+            };
             IsPassive = false;
             AssertionConsumerServiceIndex = 0;
             AuthenticationMethod = Saml2AuthenticationBehaviour.RedirectGet;
-            AuthenticationChannel = Saml2AuthenticationChannel.FrontChannel;
             ResponseProtocolBinding = Saml2ResponseProtocolBinding.FormPost;
+            SigningCertificateHashAlgorithmName = HashAlgorithmName.SHA256;
 
             //responses
             VerifySignatureOnly = true;
             WantAssertionsSigned = false;
             RequireMessageSigned = false;
-
 
             //logout
             LogoutMethod = Saml2LogoutBehaviour.RedirectGet;
@@ -101,15 +109,15 @@ namespace Saml2Core
             Saml2CoreCookieName = Saml2Defaults.AuthenticationScheme;
             Saml2CoreCookieLifetime = TimeSpan.FromMinutes(10);
 
-            _nonceCookieBuilder = new Saml2NonceCookieBuilder(this)
-            {
-                Name = Saml2Defaults.CookieNoncePrefix,
-                HttpOnly = true,
-                SameSite = SameSiteMode.None,
-                SecurePolicy = CookieSecurePolicy.SameAsRequest,
-                IsEssential = true,
-                Expiration = Saml2CoreCookieLifetime
-            };
+            //_nonceCookieBuilder = new Saml2NonceCookieBuilder(this)
+            //{
+            //    Name = Saml2Defaults.CookieNoncePrefix,
+            //    HttpOnly = true,
+            //    SameSite = SameSiteMode.None,
+            //    SecurePolicy = CookieSecurePolicy.SameAsRequest,
+            //    IsEssential = true,
+            //    Expiration = Saml2CoreCookieLifetime
+            //};
 
             AllowUnsolicitedLogins = false;
         }
@@ -131,20 +139,13 @@ namespace Saml2Core
         /// </value>
         public ushort AssertionConsumerServiceIndex { get; set; }
         /// <summary>
-        /// Gets or sets the assertion consumer service path.
-        /// This value will override the `SignInPath`
+        /// Gets or sets the assertion consumer service URL.
+        /// This will override the CallBack value.
         /// </summary>
         /// <value>
-        /// The assertion consumer service path.
+        /// The assertion consumer service URL.
         /// </value>
-        public PathString AssertionConsumerServicePath { get; set; }
-        /// <summary>
-        /// Gets or sets the authentication channel.
-        /// </summary>
-        /// <value>
-        /// The authentication channel. The default value is asynchronous 'front-channel'
-        /// </value>
-        public Saml2AuthenticationChannel AuthenticationChannel { get; set; }
+        public Uri AssertionConsumerServiceUrl { get; set; }
         /// <summary>
         /// Gets or sets the authentication HTTP method.
         /// </summary>
@@ -153,13 +154,19 @@ namespace Saml2Core
         /// </value>
         public Saml2AuthenticationBehaviour AuthenticationMethod { get; set; }
         /// <summary>
+        /// Gets or sets a value indicating whether [authentication request signed].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [authentication request signed]; otherwise, <c>false</c>.
+        /// </value>
+        public bool AuthenticationRequestSigned { get; set; }
+        /// <summary>
         /// Gets or sets the authentication scheme.
         /// </summary>
         /// <value>
         /// The authentication scheme.
         /// </value>
         public string AuthenticationScheme { get; set; }
-
         /// <summary>
         /// Gets or sets the cookie consent as essential or not
         /// It overrdies the Cookie policy set.
@@ -240,7 +247,14 @@ namespace Saml2Core
         /// <value>
         /// The identity provider metadata address or file location.
         /// </value>
-        public string IdentityProviderMetadata { get; set; }
+        public string MetadataAddress { get; set; }
+        /// <summary>
+        /// Gets or sets the name identifier format. This is needed to perform logout and SLO.
+        /// </summary>
+        /// <value>
+        /// The name identifier format.
+        /// </value>
+        public NameId NameId { get; set; }
         /// <summary>
         /// Gets or sets a value indicating whether this 
         /// instance is passive.
@@ -279,6 +293,12 @@ namespace Saml2Core
         /// </summary>
         public TimeSpan? MaxAge { get; set; }
         /// <summary>
+        /// Gets or sets if a metadata refresh should be attempted after 
+        /// a SecurityTokenSignatureKeyNotFoundException. This allows for automatic
+        /// recovery in the event of a signature key rollover. This is enabled by default.
+        /// </summary>
+        public bool RefreshOnIssuerKeyNotFound { get; set; } = true;
+        /// <summary>
         /// Gets or sets the remote sign out path.
         /// Requests received on this path will cause 
         /// the handler to invoke SignOut using the SignOutScheme
@@ -286,6 +306,7 @@ namespace Saml2Core
         /// <value>
         /// The remote sign out path.
         /// </value>
+        /// 
         public PathString RemoteSignOutPath { get; set; }
         /// <summary>
         /// Gets or sets a value indicating whether [require HTTPS metadata].
@@ -362,6 +383,21 @@ namespace Saml2Core
         /// </value>
         public X509Certificate2 SigningCertificate { get; set; }
         /// <summary>
+        /// Gets or sets the name of the signing certificate hash algorithm.
+        /// </summary>
+        /// <value>
+        /// The name of the signing certificate hash algorithm.
+        /// </value>
+        public HashAlgorithmName SigningCertificateHashAlgorithmName { get; set; }
+        /// <summary>
+        /// Indicates if requests to the CallbackPath may also be for other components. 
+        /// If enabled the handler will pass requests through that do not 
+        /// contain Saml2 authentication responses. Disabling this and setting the
+        /// CallbackPath to a dedicated endpoint may provide better error handling.
+        /// This is disabled by default.
+        /// </summary>
+        public bool SkipUnrecognizedRequests { get; set; }
+        /// <summary>
         /// Gets or sets a value indicating whether [use token lifetime].
         /// The default value is "true"
         /// </summary>
@@ -388,14 +424,7 @@ namespace Saml2Core
 
 
         #region TODO
-
-        /// <summary>
-        /// Gets or sets the name identifier format.
-        /// </summary>
-        /// <value>
-        /// The name identifier format.
-        /// </value>
-        public NameIDType NameIDType { get; set; }
+        
         /// <summary>
         /// Gets or sets the sign out query string. 
         /// If set, prepends this value to your Idp logout service url. Used by AD FS to supply ?wa=wsignout1.0.
@@ -412,22 +441,22 @@ namespace Saml2Core
 
             if (MaxAge.HasValue && MaxAge.Value < TimeSpan.Zero)
             {
-                throw new Saml2CoreException($"The Options.MaxAge value must not be a negative TimeSpan.");
+                throw new Saml2Exception($"The Options.MaxAge value must not be a negative TimeSpan.");
             }
 
             if (string.IsNullOrEmpty(EntityId))
             {
-                throw new Saml2CoreException("Options.EntityId must be provided");
+                throw new Saml2Exception("Options.EntityId must be provided");
             }
 
-            if (!CallbackPath.HasValue && !AssertionConsumerServicePath.HasValue)
+            if (!CallbackPath.HasValue)
             {
-                throw new Saml2CoreException("Options.CallbackPath or Options.AssertionConsumerServicePath must be provided.");
+                throw new Saml2Exception("Options.CallbackPath must be provided.");
             }
 
             if (ConfigurationManager == null)
             {
-                throw new InvalidOperationException($"Provide {nameof(IdentityProviderMetadata)}, "
+                throw new InvalidOperationException($"Provide {nameof(MetadataAddress)}, "
                 + $"{nameof(Configuration)}, or {nameof(ConfigurationManager)} to {nameof(Saml2Options)}");
             }
         }
@@ -460,13 +489,6 @@ namespace Saml2Core
         /// Idp MetadataAddress and Backchannel properties.
         /// </summary>
         internal IConfigurationManager<EntityDescriptor>? ConfigurationManager { get; set; }
-        /// <summary>
-        /// Gets or sets a value indicating whether this instance has certificate.
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if this instance has certificate; otherwise, <c>false</c>.
-        /// </value>
-        internal bool hasCertificate { get; set; }
         /// <summary>
         /// Gets or sets the saml2 core cookie.
         /// </summary>

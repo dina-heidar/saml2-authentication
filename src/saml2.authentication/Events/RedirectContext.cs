@@ -20,23 +20,44 @@
 // SOFTWARE.
 //
 
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
+using Saml.MetadataBuilder;
+
 namespace Saml2Core
 {
-    public class Saml2Defaults
+    public class RedirectContext : PropertiesContext<Saml2Options>
     {
         /// <summary>
-        /// The authentication scheme
+        /// Creates a new context object.
         /// </summary>
-        public const string AuthenticationScheme = "Saml2";
+        /// <param name="context"></param>
+        /// <param name="scheme"></param>
+        /// <param name="options"></param>
+        /// <param name="properties"></param>
+        public RedirectContext(
+            HttpContext context,
+            AuthenticationScheme scheme,
+            Saml2Options options,
+            AuthenticationProperties? properties)
+            : base(context, scheme, options, properties) { }
+
         /// <summary>
-        /// The display name
+        /// Gets or sets the protocol message.
         /// </summary>
-        public const string DisplayName = "Saml2";
+        /// <value>
+        /// The protocol message.
+        /// </value>
+        public AuthnRequest ProtocolMessage { get; set; } = default!;
+
         /// <summary>
-        /// Constant used to identify userstate inside AuthenticationProperties 
-        /// that have been serialized in the 'state' parameter.
+        /// If true, will skip any default logic for this redirect.
         /// </summary>
-        public static readonly string UserstatePropertiesKey = "Saml2.Userstate";
+        public bool Handled { get; private set; }
+
+        /// <summary>
+        /// Skips any default logic for this redirect.
+        /// </summary>
+        public void HandleResponse() => Handled = true;
     }
 }
-

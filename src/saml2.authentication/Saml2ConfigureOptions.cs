@@ -61,17 +61,14 @@ namespace Saml2Core
             options.SignedOutRedirectUri = options.SignedOutRedirectUri;
             options.SignInScheme = options.SignInScheme;
 
-
             SetCookie(options.CorrelationCookie);
             options.MaxAge = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, options.MaxAge);
             SetCookie(options.Saml2CoreCookie);
 
-
             //saml2 options
             options.ArtifactResolutionPath = options.ArtifactResolutionPath;
             options.AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex;
-            options.AssertionConsumerServicePath = options.AssertionConsumerServicePath;
-            options.AuthenticationChannel = options.AuthenticationChannel;
+            options.AssertionConsumerServiceUrl = options.AssertionConsumerServiceUrl;
             options.AuthenticationMethod = options.AuthenticationMethod;
             options.AuthenticationScheme = options.AuthenticationScheme;
             options.CookieConsentNeeded = options.CookieConsentNeeded;
@@ -80,11 +77,11 @@ namespace Saml2Core
             options.DefaultMetadataFileName = options.DefaultMetadataFileName;
             options.DefaultRedirectUrl = options.DefaultRedirectUrl;
             options.EntityId = options.EntityId;
-            options.ForceAuthn = options.ForceAuthn;
-            options.IdentityProviderMetadata = options.IdentityProviderMetadata;
+            options.ForceAuthn = options.ForceAuthn;           
             options.IsPassive = options.IsPassive;
             options.LogoutChannel = options.LogoutChannel;
             options.LogoutMethod = options.LogoutMethod;
+            options.MetadataAddress = options.MetadataAddress;
             options.RemoteSignOutPath = options.RemoteSignOutPath;
             options.RequireHttpsMetadata = options.RequireHttpsMetadata;
             options.RequireMessageSigned = options.RequireMessageSigned;
@@ -95,6 +92,7 @@ namespace Saml2Core
             options.SignedOutRedirectUri = options.SignedOutRedirectUri;
             options.SignOutScheme = options.SignOutScheme;
             options.SigningCertificate = options.SigningCertificate;
+            options.SigningCertificateHashAlgorithmName = options.SigningCertificateHashAlgorithmName;
             options.UseTokenLifetime = options.UseTokenLifetime;
             options.VerifySignatureOnly = options.VerifySignatureOnly;
             options.WantAssertionsSigned = options.WantAssertionsSigned;
@@ -105,15 +103,15 @@ namespace Saml2Core
         {
             // Override the existing defaults when values are set instead of constructing
             // an entirely new CookieBuilder.
-            cookieBuilder.Domain = cookieBuilder.Domain;
-            cookieBuilder.HttpOnly = cookieBuilder.HttpOnly;
-            cookieBuilder.IsEssential = cookieBuilder.IsEssential;
-            cookieBuilder.Expiration = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, cookieBuilder.Expiration);
-            cookieBuilder.MaxAge = StringHelpers.ParseValueOrDefault<TimeSpan?>(null, _invariantNullableTimeSpanParse, cookieBuilder.MaxAge);
-            cookieBuilder.Name = cookieBuilder.Name;
-            cookieBuilder.Path = cookieBuilder.Path;
-            cookieBuilder.SameSite = cookieBuilder.SameSite;
-            cookieBuilder.SecurePolicy = cookieBuilder.SecurePolicy;
+            //cookieBuilder.Domain = cookieBuilder.Domain;
+            //cookieBuilder.HttpOnly = cookieBuilder.HttpOnly;
+            //cookieBuilder.IsEssential = cookieBuilder.IsEssential;
+            //cookieBuilder.Expiration = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, cookieBuilder.Expiration);
+            //cookieBuilder.MaxAge = StringHelpers.ParseValueOrDefault<TimeSpan?>(null, _invariantNullableTimeSpanParse, cookieBuilder.MaxAge);
+            //cookieBuilder.Name = cookieBuilder.Name;
+            //cookieBuilder.Path = cookieBuilder.Path;
+            //cookieBuilder.SameSite = cookieBuilder.SameSite;
+            //cookieBuilder.SecurePolicy = cookieBuilder.SecurePolicy;
         }
 
         /// <inheritdoc />
