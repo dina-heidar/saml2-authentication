@@ -196,14 +196,5 @@ namespace Saml2Core
             // Encode the relay state if we're building a request. Otherwise, append unmodified.
             result.Append(request != null ? relayState.DeflateEncode().UrlEncode() : relayState);
         }
-        public static void AddSignAlg(this StringBuilder result, string request, string signatureMethod)
-        {
-            if (signatureMethod == null)
-                return;
-
-            result.Append(string.Format("&{0}=", Parameters.SigAlg));
-            var urlEncoded = signatureMethod.UrlEncode();
-            result.Append(request != null ? urlEncoded.UpperCaseUrlEncode() : signatureMethod);
-        }
     }
 }

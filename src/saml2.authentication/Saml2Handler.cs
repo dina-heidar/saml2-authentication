@@ -21,7 +21,6 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -32,9 +31,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Saml.MetadataBuilder;
-using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
 {
@@ -64,9 +61,6 @@ namespace Saml2Core
         {
             _logger = loggerFactory.CreateLogger<Saml2Handler>();
             _saml2Service = saml2Service;
-
-            Options.AssertionConsumerServiceUrl = (Options.AssertionConsumerServiceUrl == null ?
-                new Uri(new Uri(CurrentUri), Options.CallbackPath) : Options.AssertionConsumerServiceUrl);
         }
         protected override Task<HandleRequestResult> HandleRemoteAuthenticateAsync()
         {
@@ -128,6 +122,7 @@ namespace Saml2Core
             // order for local RedirectUri
             // 1. challenge.Properties.RedirectUri
             // 2. CurrentUri if RedirectUri is not set)
+            // Save the original challenge URI so we can redirect back to it when we're done.
             if (string.IsNullOrEmpty(properties.RedirectUri))
             {
                 properties.RedirectUri = OriginalPathBase + Options.CallbackPath;
@@ -141,9 +136,12 @@ namespace Saml2Core
                 Options.Configuration = _configuration;
             }
 
-            //prepare            
-            //get the assertion service Url
-            var saml2ResponseUrl = BuildRedirectUri(Options.CallbackPath);
+            if (Options.AssertionConsumerServiceUrl == null)
+            {
+                Options.AssertionConsumerServiceUrl = new Uri(new Uri(CurrentUri), Options.CallbackPath);
+            }
+
+            var saml2Message = new Saml2Message();
 
             //generate a nonce of random bytes and retain it in a browser cookie
             //and encode this nonce and other information in the authentication properties
@@ -152,109 +150,36 @@ namespace Saml2Core
             //identity provider. The identity provider will return this value right
             //back to your application after authenticating the user.         
             GenerateCorrelationId(properties);
-            string relayState = Options.StateDataFormat.Protect(properties);
-
-            //get the identity provider url - where the authn request needs to be sent to
-            var idpConfiguration = _configuration.Items
-                    .FirstOrDefault(i => i.GetType() == typeof(IDPSSODescriptor)) as IDPSSODescriptor;
-           
-            //maybe add an option to select a specific one in case there are many?
-            var idpSingleServiceSignOnUrls = idpConfiguration.SingleSignOnServices;
 
             //TODO - Create saml cookie session to check against then delete it
             //According to the SAML specification, the SAML response returned by the IdP
             //should have an InResponseTo field that matches the authn request ID. This ties the SAML
             //response to the authn request. The authn request ID is saved in the SAML session
             //state so it can be checked against the InResponseTo.
-           
 
-            //get the string outer xml
-            //add relay state as query string
-            var request = new StringBuilder();
+            var samlRequest = saml2Message.CreateSignInRequest(Options, properties);
 
-            //if authnRequest is redirect
             if (Options.AuthenticationMethod == Saml2AuthenticationBehaviour.RedirectGet)
             {
-                //get the identity provider http-redirect sso endpoint
-                var idpSingleServiceGetSignOnUrl = idpSingleServiceSignOnUrls
-                    .FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Redirect).Location;
-
-                var assertionConsumerServiceUrl = new Uri(new Uri(CurrentUri), Options.CallbackPath).AbsoluteUri;
-
-                
-
-                //string authnRequestIdOld = "id" + Guid.NewGuid().ToString("N");
-                var authnRequestOld = _saml2Service.CreateAuthnRequest(Options,
-                    authnRequestIdOld, relayState, assertionConsumerServiceUrlOld, idpSingleServiceGetSignOnUrl);
                 //call idp
-                Response.Redirect(authnRequestOld);
+                Response.Redirect(samlRequest);
+            }
+            else
+            {
+                var content = samlRequest;
+                var buffer = Encoding.UTF8.GetBytes(content);
 
-            //    //create authnrequest xml object
-            //    //var authnRequestXmlDoc = await _saml2Service.CreateAuthnRequestAsync(saml2ResponseUrl, idpSingleServiceGetSignOnUrl);
+                Response.ContentLength = buffer.Length;
+                Response.ContentType = "text/html;charset=UTF-8";
 
-            //    var result = authnRequestXmlDoc.OuterXml;
+                // Emit Cache-Control=no-cache to prevent client caching.
+                Response.Headers.Add("Cache-Control", "no-cache, no-store");
+                Response.Headers.Add("Pragma", "no-cache");
+                Response.Headers.Add("Expires", "Thu, 01 Jan 1970 00:00:00 GMT");
 
-            //    //convert to base64
-            //    request.AddMessageParameter(result, null);
-
-            //    //add relay state as base64
-            //    request.AddRelayState(result, relayState);
-
-            //    if (Options.SigningCertificate != null && Options.AuthenticationRequestSigned)
-            //    {
-            //        (var key, var signatureMethod, var keyName) =
-            //            XmlDocumentExtensions.SetSignatureAlgorithm(Options.SigningCertificate);
-
-            //        //add signAlg
-            //        request.AddSignAlg(result, signatureMethod);
-
-            //        //add signature to query string
-            //        request = _saml2Service.AppendQuerySignature(request, key);
-            //    }
-            //    //TODO
-            //    var test = $"{idpSingleServiceGetSignOnUrl}?{request}";
-            //    //send to idp as redirect
-            //    Response.Redirect($"{idpSingleServiceGetSignOnUrl}?{request}");
-            //}
-            ////it is a post method
-            //else
-            //{
-            //    //get the identity provider http-post sso endpoint
-            //    var idpSingleServicePostSignOnUrl = idpSingleServiceSignOnUrls
-            //        .FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Post).Location;
-
-            //    //create authnrequest xml object
-            //    var authnRequestXmlDoc = await _saml2Service.CreateAuthnRequestAsync(saml2ResponseUrl, idpSingleServicePostSignOnUrl);
-
-            //    if (Options.SigningCertificate != null && Options.AuthenticationRequestSigned)
-            //    {
-            //        //sign xml document
-            //        authnRequestXmlDoc.AddXmlSignature(Options.SigningCertificate);
-            //    }
-
-            //    var authnRequestEncoded = authnRequestXmlDoc.OuterXml.EncodeDeflateMessage();
-
-            //    var parameters = new Dictionary<string, string>
-            //    {
-            //        { Saml2Constants.Parameters.SamlRequest, authnRequestEncoded }
-            //    };
-
-            //    var content = _saml2Service.BuildFormPost(idpSingleServicePostSignOnUrl, parameters);
-            //    var buffer = Encoding.UTF8.GetBytes(content);
-
-            //    Response.ContentLength = buffer.Length;
-            //    Response.ContentType = "text/html;charset=UTF-8";
-
-            //    // Emit Cache-Control=no-cache to prevent client caching.             
-            //    Response.Headers.Add("Cache-Control", "no-cache, no-store");
-            //    Response.Headers.Add("Pragma","no-cache");
-            //    Response.Headers.Add("Expires", "Thu, 01 Jan 1970 00:00:00 GMT");
-
-            //    await Response.Body.WriteAsync(buffer, 0, buffer.Length);
-            //    return;
+                await Response.Body.WriteAsync(buffer);
             }
         }
-
 
         protected virtual Task<bool> HandleSignOutCallbackAsync()
         {
@@ -353,4 +278,5 @@ namespace Saml2Core
         }
     }
 }
+
 
