@@ -110,7 +110,7 @@ namespace Saml2Core
         /// <param name="response">The response.</param>
         /// <param name="request">The request.</param>
         /// <param name="samlCookieName">Name of the saml cookie.</param>
-        public static void DeleteAllRequestIdCookies(this HttpResponse response, HttpRequest request, string samlCookieName)
+        public static void DeleteAllSaml2RequestCookies(this HttpResponse response, HttpRequest request, string samlCookieName)
         {
             var cookies = request.Cookies;
             foreach (var cookie in cookies.Where(c => c.Key.StartsWith(samlCookieName)))

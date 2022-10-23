@@ -85,8 +85,7 @@ namespace Saml2Core
             options.RemoteSignOutPath = options.RemoteSignOutPath;
             options.RequireHttpsMetadata = options.RequireHttpsMetadata;
             options.RequireMessageSigned = options.RequireMessageSigned;
-            options.ResponseProtocolBinding = options.ResponseProtocolBinding;
-            options.Saml2CoreCookieLifetime = options.Saml2CoreCookieLifetime;
+            options.ResponseProtocolBinding = options.ResponseProtocolBinding;           
             options.Saml2CoreCookieName = options.Saml2CoreCookieName;
             options.SignOutPath = options.SignOutPath.Value;
             options.SignedOutRedirectUri = options.SignedOutRedirectUri;
@@ -103,15 +102,15 @@ namespace Saml2Core
         {
             // Override the existing defaults when values are set instead of constructing
             // an entirely new CookieBuilder.
-            //cookieBuilder.Domain = cookieBuilder.Domain;
-            //cookieBuilder.HttpOnly = cookieBuilder.HttpOnly;
-            //cookieBuilder.IsEssential = cookieBuilder.IsEssential;
-            //cookieBuilder.Expiration = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, cookieBuilder.Expiration);
-            //cookieBuilder.MaxAge = StringHelpers.ParseValueOrDefault<TimeSpan?>(null, _invariantNullableTimeSpanParse, cookieBuilder.MaxAge);
-            //cookieBuilder.Name = cookieBuilder.Name;
-            //cookieBuilder.Path = cookieBuilder.Path;
-            //cookieBuilder.SameSite = cookieBuilder.SameSite;
-            //cookieBuilder.SecurePolicy = cookieBuilder.SecurePolicy;
+            cookieBuilder.Domain = cookieBuilder.Domain;
+            cookieBuilder.HttpOnly = cookieBuilder.HttpOnly;
+            cookieBuilder.IsEssential = cookieBuilder.IsEssential;
+            cookieBuilder.Expiration = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, cookieBuilder.Expiration);
+            cookieBuilder.MaxAge = StringHelpers.ParseValueOrDefault<TimeSpan?>(null, _invariantNullableTimeSpanParse, cookieBuilder.MaxAge);
+            cookieBuilder.Name = cookieBuilder.Name;
+            cookieBuilder.Path = cookieBuilder.Path;
+            cookieBuilder.SameSite = cookieBuilder.SameSite;
+            cookieBuilder.SecurePolicy = cookieBuilder.SecurePolicy;
         }
 
         /// <inheritdoc />

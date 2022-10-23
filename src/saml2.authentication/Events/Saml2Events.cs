@@ -33,10 +33,10 @@ namespace Saml2Core
         //        /// </summary>
         //        public Func<AuthenticationFailedContext, Task> OnAuthenticationFailed { get; set; } = context => Task.CompletedTask;
 
-        //        /// <summary>
-        //        /// Invoked when a protocol message is first received.
-        //        /// </summary>
-        //        public Func<MessageReceivedContext, Task> OnMessageReceived { get; set; } = context => Task.CompletedTask;
+        /// <summary>
+        /// Invoked when a protocol message is first received.
+        /// </summary>
+        public Func<MessageReceivedContext, Task> OnMessageReceived { get; set; } = context => Task.CompletedTask;
 
         /// <summary>
         /// Invoked to manipulate redirects to the identity provider for SignIn, SignOut, or Challenge.
@@ -63,10 +63,10 @@ namespace Saml2Core
         //        /// </summary>
         //        public virtual Task AuthenticationFailed(AuthenticationFailedContext context) => OnAuthenticationFailed(context);
 
-        //        /// <summary>
-        //        /// Invoked when a protocol message is first received.
-        //        /// </summary>
-        //        public virtual Task MessageReceived(MessageReceivedContext context) => OnMessageReceived(context);
+        /// <summary>
+        /// Invoked when a protocol message is first received.
+        /// </summary>
+        public virtual Task MessageReceived(MessageReceivedContext context) => OnMessageReceived(context);
 
         /// <summary>
         /// Invoked to manipulate redirects to the identity provider for SignIn, SignOut, or Challenge.        

@@ -27,6 +27,8 @@ namespace Saml2Core
 {
     internal static partial class LoggingExtensions
     {
+        [LoggerMessage(1, LogLevel.Debug, "Received a sign-in message without a SamlResponse.", EventName = "SignInWithoutWResult")]
+        public static partial void SignInWithoutWResult(this ILogger logger);
         [LoggerMessage(13, LogLevel.Debug, "Updating configuration", EventName = "UpdatingConfiguration")]
         public static partial void UpdatingConfiguration(this ILogger logger);
 

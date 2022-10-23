@@ -107,17 +107,15 @@ namespace Saml2Core
 
             //cookie
             Saml2CoreCookieName = Saml2Defaults.AuthenticationScheme;
-            Saml2CoreCookieLifetime = TimeSpan.FromMinutes(10);
 
-            //_nonceCookieBuilder = new Saml2NonceCookieBuilder(this)
-            //{
-            //    Name = Saml2Defaults.CookieNoncePrefix,
-            //    HttpOnly = true,
-            //    SameSite = SameSiteMode.None,
-            //    SecurePolicy = CookieSecurePolicy.SameAsRequest,
-            //    IsEssential = true,
-            //    Expiration = Saml2CoreCookieLifetime
-            //};
+            Saml2CoreCookie = new CookieBuilder()
+            {
+                Name = Saml2CoreCookieName,               
+                IsEssential = CookieConsentNeeded,
+                HttpOnly = true,
+                SameSite = SameSiteMode.None,
+                SecurePolicy = CookieSecurePolicy.SameAsRequest
+            };
 
             AllowUnsolicitedLogins = false;
         }
@@ -334,14 +332,7 @@ namespace Saml2Core
         /// <value>
         /// The default value is 'HTTP-POST'
         /// </value>
-        public Saml2ResponseProtocolBinding ResponseProtocolBinding { get; set; }
-        /// <summary>
-        /// Gets or sets the saml2 core cookie lifetime.
-        /// </summary>
-        /// <value>
-        /// The saml2 core cookie lifetime.
-        /// </value>
-        public TimeSpan Saml2CoreCookieLifetime { get; set; }
+        public Saml2ResponseProtocolBinding ResponseProtocolBinding { get; set; }        
         /// <summary>
         /// Gets or sets the name of the saml2 core cookie.
         /// </summary>
@@ -469,6 +460,7 @@ namespace Saml2Core
         /// The Saml protocol allows the user to initiate logins without contacting the application for a Challenge first.
         /// However, that flow is susceptible to XSRF and other attacks so it is disabled here by default.
         /// This will later be expanded.
+        /// https://docs.oasis-open.org/security/saml/v2.0/saml-profiles-2.0-os.pdf section 4.1.5 Unsolicited Responses
         /// </summary>
         /// <value>
         ///   <c>true</c> if [allow unsolicited logins]; otherwise, <c>false</c>.

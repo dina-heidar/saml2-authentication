@@ -25,6 +25,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Web;
 using System.Xml;
@@ -34,6 +36,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.IdentityModel.Protocols;
 using Saml.MetadataBuilder;
 using static Saml2Core.Saml2Constants;
+using Reference = System.Security.Cryptography.Xml.Reference;
 
 namespace Saml2Core
 {
@@ -54,16 +57,28 @@ namespace Saml2Core
 
             IssuerAddress = saml2Message.IssuerAddress;
         }
-
-        public string CreateSignInRequest(Saml2Options options, AuthenticationProperties properties)
+        public Saml2Message(IEnumerable<KeyValuePair<string, string[]>> parameters)
         {
-            //AuthnRequest ID value which needs to be included in the AuthnRequest
-            //we will need this to create the same session cookie as well
-            var authnRequestId = Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
+            if (parameters == null)
+            {
+                //TODO
+                //LogHelper.LogWarning(FormatInvariant(LogMessages.IDX22000, LogHelper.MarkAsNonPII(nameof(parameters))));
+                return;
+            }
 
-            var idpSingleServiceSignOnEndpoints = (options.Configuration.Items
-                   .FirstOrDefault(i => i.GetType() == typeof(IDPSSODescriptor)) as IDPSSODescriptor)
-                   .SingleSignOnServices;
+            foreach (KeyValuePair<string, string[]> keyValue in parameters)
+            {
+                foreach (string strValue in keyValue.Value)
+                {
+                    SetParameter(keyValue.Key, strValue);
+                }
+            }
+        }
+        public string CreateSignInRequest(Saml2Options options,
+            string authnRequestId, AuthenticationProperties properties)
+        {
+            var idpConfiguration = GetIdpDescriptor(options.Configuration);
+            var idpSingleServiceSignOnEndpoints = idpConfiguration.SingleSignOnServices;
             var issuer = GetSignOnEndpoint(idpSingleServiceSignOnEndpoints, options.AuthenticationMethod);
 
             var authnRequest = new AuthnRequestType()
@@ -135,10 +150,129 @@ namespace Saml2Core
                     //get signature                
                     saml2Message.Signature = GetQuerySignature(key, requestSignedUrlString, options.SigningCertificateHashAlgorithmName);
                 }
+                
                 return saml2Message.BuildRedirectUrl();
             }
         }
+        public virtual string GetToken(ResponseType responseType, X509Certificate2 x509Certificate2)
+        {
+            var key = (AsymmetricAlgorithm)x509Certificate2.GetRSAPublicKey() ??
+                x509Certificate2.GetECDsaPublicKey();
+            return GetTokenUsingXmlReader(responseType, key);
+        }
+        public virtual string GetTokenUsingXmlReader(ResponseType responseType, AsymmetricAlgorithm key)
+        {
+            string token;
+            string xmlTemplate;
+            var assertion = responseType.Items[0];
+            if (assertion == null)
+            {
+                throw new Saml2Exception("Missing assertion");
+            }
 
+            //check if its a decrypted assertion
+            if (assertion.GetType() == typeof(EncryptedElementType))
+            {
+                var encryptedElement = (EncryptedElementType)assertion;
+                SymmetricAlgorithm sessionKey;
+
+                if (encryptedElement.EncryptedData.EncryptionMethod != null)
+                {
+                    sessionKey = ExtractSessionKey(encryptedElement, key);
+
+                    var encryptedXml = new EncryptedXml();
+
+                    var xmlDoc = Serialize<EncryptedDataType>(encryptedElement.EncryptedData);
+
+                    var xmlNodeList = xmlDoc.GetElementsByTagName("EncryptedData");
+                    var encryptedData = new EncryptedData();
+                    encryptedData.LoadXml((XmlElement)xmlNodeList[0]);
+
+                    byte[] plaintext = encryptedXml.DecryptData(encryptedData, sessionKey);
+                    token = Encoding.UTF8.GetString(plaintext);
+                    return token;
+                }
+            }
+            else
+            {
+                var xmlDoc = Serialize<AssertionType>((AssertionType)assertion);
+                string request = xmlDoc.OuterXml;
+                return request;
+            }
+            throw new Saml2Exception("Unable to parse the decrypted assertion.");
+        }
+        public AssertionType GetAssertion(string token, Saml2Options options)
+        {
+            if (options.WantAssertionsSigned)
+            {
+                var doc = new XmlDocument
+                {
+                    XmlResolver = null,
+                    PreserveWhitespace = true
+                };
+                doc.LoadXml(token);
+
+                if (!ValidateXmlSignature(doc, options.VerifySignatureOnly, options.Configuration))
+                {
+                    throw new Saml2Exception("Assertion signature is not valid");
+                }
+            }
+            return DeSerializeToClass<AssertionType>(token);           
+        }
+        public ResponseType GetSamlResponseToken(string base64EncodedSamlResponse, Saml2Options options)
+        {
+            var doc = new XmlDocument
+            {
+                XmlResolver = null,
+                PreserveWhitespace = true
+            };
+
+            if (base64EncodedSamlResponse.Contains("%"))
+            {
+                base64EncodedSamlResponse = HttpUtility.UrlDecode(base64EncodedSamlResponse);
+            }
+
+            byte[] bytes = Convert.FromBase64String(base64EncodedSamlResponse);
+            string samlResponseString = Encoding.UTF8.GetString(bytes);
+            doc.LoadXml(samlResponseString);
+
+            if (options.RequireMessageSigned)
+            {
+                if (!ValidateXmlSignature(doc, options.VerifySignatureOnly, options.Configuration))
+                {
+                    throw new Saml2Exception("Response signature is not valid");
+                }
+            }
+            var samlResponseType = DeSerializeToClass<ResponseType>(base64EncodedSamlResponse);
+            return samlResponseType;
+        }
+        public void CheckIfReplayAttack(string inResponseTo, string base64OriginalSamlRequestId)
+        {
+            string originalSamlRequestId = base64OriginalSamlRequestId.Base64Decode();
+
+            if (string.IsNullOrEmpty(originalSamlRequestId) || string.IsNullOrEmpty(inResponseTo))
+            {
+                throw new Saml2Exception("Empty protocol message id is not allowed.");
+            }
+
+            if (!inResponseTo.Equals(originalSamlRequestId, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Saml2Exception("Replay attack.");
+            }
+        }
+        public void CheckStatus(ResponseType responseToken)
+        {
+            var status = responseToken.Status.StatusCode;
+            if (status.Value != Saml2Constants.StatusCodes.Success)
+            {
+                //TODO write exception values as switch
+                throw new Saml2Exception(status.Value);
+            }
+        }
+        public bool IsSignInMessage
+        {
+            get => SamlResponse != null;
+        }
         public string SamlRequest
         {
             get { return GetParameter(Saml2Constants.Parameters.SamlRequest); }
@@ -159,9 +293,11 @@ namespace Saml2Core
             get { return GetParameter(Saml2Constants.Parameters.Signature); }
             set { SetParameter(Saml2Constants.Parameters.Signature, value); }
         }
-
-        #region Private 
-
+        public string SamlResponse
+        {
+            get { return GetParameter(Saml2Constants.Parameters.SamlResponse); }
+            set { SetParameter(Saml2Constants.Parameters.SamlResponse, EncodeDeflateMessage(value)); }
+        }
         public virtual string BuildRedirectUrl()
         {
             var _issuerAddress = this.IssuerAddress;
@@ -189,7 +325,89 @@ namespace Saml2Core
             }
             return strBuilder.ToString();
         }
+        public static IDPSSODescriptor GetIdpDescriptor(EntityDescriptor configuration)
+        {
+            var idpConfiguration = (configuration.Items
+                   .FirstOrDefault(i => i.GetType() == typeof(IDPSSODescriptor)) as IDPSSODescriptor);
 
+            return idpConfiguration;
+        }
+
+        #region Private 
+
+        private static bool ValidateXmlSignature(XmlDocument xmlDoc,
+            bool verifySignatureOnly, EntityDescriptor configuration)
+        {
+            var signedXml = new SignedXml(xmlDoc);
+            var signatureElement = xmlDoc.GetElementsByTagName(Saml2Constants.Parameters.Signature,
+                Saml2Constants.Namespaces.DsNamespace);
+
+            // Checking If the Response or the Assertion has been signed once and only once.
+            if (signatureElement.Count != 1)
+                throw new InvalidOperationException("Too many signatures!");
+
+            signedXml.LoadXml((XmlElement)signatureElement[0]);
+
+            // a metadata might be multiple signing certificates (Idp have this).
+            // get the correct one and check it
+            var x509data = signedXml.Signature.KeyInfo.OfType<KeyInfoX509Data>().First();
+            var signedCertificate = (X509Certificate2)x509data.Certificates[0];
+            var idpCertificates = GetIdpDescriptor(configuration).SigningCertificates;
+
+            // validate references here!
+            if ((signedXml.SignedInfo.References[0] as Reference)?.Uri != "")
+                throw new InvalidOperationException("Check your references!");
+
+            return signedXml.CheckSignature(GetIdpCertificate(idpCertificates, signedCertificate.SerialNumber),
+                verifySignatureOnly);
+
+        }
+        private SymmetricAlgorithm ExtractSessionKey(EncryptedElementType encryptedElement,
+            AsymmetricAlgorithm privateKey)
+        {
+            if (encryptedElement.EncryptedData != null)
+            {
+                if (encryptedElement.EncryptedData.KeyInfo.Items[0] != null)
+                {
+                    XmlElement encryptedKeyElement = (XmlElement)encryptedElement.EncryptedData.KeyInfo.Items[0];
+                    var encryptedKey = new EncryptedKey();
+                    encryptedKey.LoadXml(encryptedKeyElement);
+                    return ToSymmetricKey(encryptedKey, encryptedElement.EncryptedData.EncryptionMethod.Algorithm, privateKey);
+                }
+            }
+            throw new Saml2Exception("Unable to locate assertion decryption key.");
+        }
+        private SymmetricAlgorithm ToSymmetricKey(EncryptedKey encryptedKey, string hashAlgorithm,
+            AsymmetricAlgorithm privateKey)
+        {
+
+            bool useOaep = encryptedKey.EncryptionMethod.KeyAlgorithm == EncryptedXml.XmlEncRSAOAEPUrl;
+
+            if (encryptedKey.CipherData != null)
+            {
+                byte[] cipherValue = encryptedKey.CipherData.CipherValue;
+                var key = GetKeyInstance(hashAlgorithm);
+                key.Key = EncryptedXml.DecryptKey(cipherValue, (RSA)privateKey, useOaep);
+                return key;
+            }
+
+            throw new NotImplementedException("Unable to decode CipherData of type \"CipherReference\".");
+        }
+        private static SymmetricAlgorithm GetKeyInstance(string hashAlgorithm)
+        {
+            Rijndael key = Rijndael.Create(hashAlgorithm);
+            return key;
+        }
+        private static X509Certificate2 GetIdpCertificate(X509Certificate2[] x509Certificate2s,
+            string serialNumber)
+        {
+            X509Certificate2 cert = x509Certificate2s.Where(c => c.SerialNumber == serialNumber).FirstOrDefault();
+            if (cert == null)
+            {
+                throw new Exception("No matching certificate found. Assertion is not from known Idp.");
+            }
+            return cert;
+        }
         private byte[] SignData(AsymmetricAlgorithm key, byte[] data, HashAlgorithmName hashAlgorithmName)
         {
             if (key is RSA)
@@ -209,7 +427,6 @@ namespace Saml2Core
             }
             throw new Saml2Exception("Signing key must be an instance of either RSA, DSA or ECDSA.");
         }
-
         //To construct the signature, a string consisting of the concatenation of the RelayState(if present),
         //SigAlg, and SAMLRequest(or SAMLResponse) query string parameters(each one URLencoded) is constructed
         //in one of the following ways(ordered as 'SAMLRequest=value&RelayState=value&SigAlg=value')
@@ -238,16 +455,12 @@ namespace Saml2Core
             var urlEncoded = signatureMethod.UrlEncode();
             return urlEncoded.UpperCaseUrlEncode();
         }
-
         private static string EncodeDeflateMessage(string request)
         {
             var encoded = request.DeflateEncode();
             var urlEncoded = encoded.UrlEncode();
             return urlEncoded.UpperCaseUrlEncode();
         }
-
-
-        //[RequiresUnreferencedCode("Calls System.Xml.Serialization.XmlSerializer.XmlSerializer(System.Type)")]
         private static XmlDocument Serialize<T>(T item) where T : class
         {
             var xmlTemplate = string.Empty;
@@ -264,6 +477,21 @@ namespace Saml2Core
             xmlDoc.PreserveWhitespace = true;
             return xmlDoc;
         }
+        private T DeSerializeToClass<T>(string xmlString) where T : class
+        {
+            var xmlSerializer = new XmlSerializer(typeof(T));
+            var safeSettings = new XmlReaderSettings
+            {
+                XmlResolver = null,
+                DtdProcessing = DtdProcessing.Prohibit,
+                ValidationType = ValidationType.None
+            };
+
+            using (var reader = XmlReader.Create(new StringReader(xmlString), safeSettings))
+            {
+                return ((T)xmlSerializer.Deserialize(reader));
+            }
+        }        
         private static string GetProtocolBinding(Saml2ResponseProtocolBinding responseProtocolBinding)
         {
             switch (responseProtocolBinding)
