@@ -34,6 +34,7 @@ using System.Xml.Serialization;
 using MetadataBuilder.Schema.Metadata;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Xml;
 using Saml.MetadataBuilder;
 using static Saml2Core.Saml2Constants;
 using Reference = System.Security.Cryptography.Xml.Reference;
@@ -75,23 +76,33 @@ namespace Saml2Core
             }
         }
         public string CreateSignInRequest(Saml2Options options,
-            string authnRequestId, AuthenticationProperties properties)
+            string authnRequestId, string relayState, string sendAssertionTo)
         {
             var idpConfiguration = GetIdpDescriptor(options.Configuration);
             var idpSingleServiceSignOnEndpoints = idpConfiguration.SingleSignOnServices;
             var issuer = GetSignOnEndpoint(idpSingleServiceSignOnEndpoints, options.AuthenticationMethod);
 
+            NameIDType entityID = new NameIDType()
+            {
+                Value = options.EntityId
+            };
             var authnRequest = new AuthnRequestType()
             {
                 ID = authnRequestId,
-                Issuer = new NameIDType()
-                {
-                    Format = options.NameId.Format,
-                    Value = options.EntityId,
-                    SPProvidedID = options.NameId.SpProvidedId,
-                    SPNameQualifier = options.NameId.SpNameQualifier,
-                    NameQualifier = options.NameId.NameQualifier
-                },
+                Issuer = entityID,
+                Version = Saml2Constants.Version,
+                ForceAuthn = options.ForceAuthn,
+                ForceAuthnSpecified = true,
+                IsPassive = options.IsPassive,
+                IsPassiveSpecified = true,
+                //new NameIDType()
+                //{
+                //    Format = options.NameId.Format,
+                //    Value = options.EntityId,
+                //    SPProvidedID = options.NameId.SpProvidedId,
+                //    SPNameQualifier = options.NameId.SpNameQualifier,
+                //    NameQualifier = options.NameId.NameQualifier
+                //},
                 NameIDPolicy = new NameIDPolicyType()
                 {
                     Format = options.NameId.Format,
@@ -99,16 +110,12 @@ namespace Saml2Core
                     AllowCreate = true,
                     AllowCreateSpecified = true
                 },
-                Version = Saml2Constants.Version,
-                ForceAuthn = options.ForceAuthn,
-                ForceAuthnSpecified = true,
-                IsPassive = options.IsPassive,
-                IsPassiveSpecified = true,
-                AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex,
-                AssertionConsumerServiceURL = options.AssertionConsumerServiceUrl.AbsoluteUri,
-                ProtocolBinding = GetProtocolBinding(options.ResponseProtocolBinding),
+                Destination =  issuer,
+                //AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex,
+                AssertionConsumerServiceURL = sendAssertionTo,//options.AssertionConsumerServiceUrl.AbsoluteUri,
+                ProtocolBinding =  GetProtocolBinding(options.ResponseProtocolBinding),
                 IssueInstant = DateTime.UtcNow,
-                Destination = issuer
+               
             };
 
             //create xml
@@ -118,12 +125,10 @@ namespace Saml2Core
             {
                 IssuerAddress = issuer
             };
-
-            //relay state
-            saml2Message.Relay = options.StateDataFormat.Protect(properties);
+                      
 
             //authentication request
-            saml2Message.SamlRequest = authnRequestXmlDoc.OuterXml;
+            //saml2Message.SamlRequest = authnRequestXmlDoc.OuterXml;           
 
             //if post method and needs signature then we need to ign the xml itself 
             if (options.AuthenticationMethod == Saml2AuthenticationBehaviour.FormPost)
@@ -137,21 +142,54 @@ namespace Saml2Core
             }
             else
             {
+                //redirect binding
                 //if there is a certificate to sign the authnrequest
                 if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
                 {
+                    saml2Message.SamlRequest = (authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
+                    //relay state
+                    saml2Message.Relay = relayState.DeflateEncode().UrlEncode();
+
                     (var key, var signatureMethod, var keyName) =
                         XmlDocumentExtensions.SetSignatureAlgorithm(options.SigningCertificate);
 
                     //get signAlg
-                    saml2Message.SigAlg = GetQuerySignAlg(signatureMethod);
-                    var requestSignedUrlString = saml2Message.BuildRedirectUrl();
+                    saml2Message.SigAlg = signatureMethod.UrlEncode().UpperCaseUrlEncode();//GetQuerySignAlg(signatureMethod);
 
+                    var builder = new StringBuilder();
+                    //var requestSignedUrlString = builder
+                    //    .AppendFormat("{0}=", Saml2Constants.Parameters.SamlRequest)
+                    //    .Append((authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode())
+                    //    .AppendFormat("&{0}=", Saml2Constants.Parameters.RelayState)
+                    //    .Append(relayState.DeflateEncode().UrlEncode())
+                    //    .AppendFormat("&{0}=", Saml2Constants.Parameters.SigAlg)
+                    //    .Append(signatureMethod.UrlEncode().UpperCaseUrlEncode());
+
+                    var requestSignedUrlString = builder
+                        .AppendFormat("{0}=", Saml2Constants.Parameters.SamlRequest)
+                        .Append((authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode())
+                        .AppendFormat("&{0}=", Saml2Constants.Parameters.RelayState)
+                        .Append(relayState.DeflateEncode().UrlEncode())
+                        .AppendFormat("&{0}=", Saml2Constants.Parameters.SigAlg)
+                        .Append(signatureMethod.UrlEncode().UpperCaseUrlEncode());
+
+
+
+                    //Uri uri = new Uri(requestSignedUrlString);
+                    //var queryString = $"{Saml2Constants.Parameters.SamlRequest}={saml2Message.SamlRequest}&{Saml2Constants.Parameters.RelayState}={saml2Message.Relay}&{Saml2Constants.Parameters.SigAlg}={saml2Message.SigAlg}";//uri.Query.Remove(0, 1);
+
+                    var signature = SignData(key, Encoding.UTF8.GetBytes(requestSignedUrlString.ToString()), 
+                        options.SigningCertificateHashAlgorithmName);
                     //get signature                
-                    saml2Message.Signature = GetQuerySignature(key, requestSignedUrlString, options.SigningCertificateHashAlgorithmName);
+                    saml2Message.Signature = HttpUtility.UrlEncode(Convert.ToBase64String(signature));
+
+                    requestSignedUrlString.AppendFormat("&{0}=", Saml2Constants.Parameters.Signature)
+                        .Append(HttpUtility.UrlEncode(Convert.ToBase64String(signature)));
+                    //GetQuerySignature(options.SigningCertificate.PrivateKey,requestSignedUrlString, options.SigningCertificateHashAlgorithmName);
+                    //var result = $"{Saml2Constants.Parameters.SamlRequest}={saml2Message.SamlRequest}&{Saml2Constants.Parameters.RelayState}={saml2Message.Relay}&{Saml2Constants.Parameters.SigAlg}={saml2Message.SigAlg}&{Saml2Constants.Parameters.Signature}={saml2Message.Signature}";
+                    return $"{issuer}?{requestSignedUrlString}";
                 }
-                
-                return saml2Message.BuildRedirectUrl();
+                return issuer; // saml2Message.BuildRedirectUrl();
             }
         }
         public virtual string GetToken(ResponseType responseType, X509Certificate2 x509Certificate2)
@@ -243,7 +281,7 @@ namespace Saml2Core
                     throw new Saml2Exception("Response signature is not valid");
                 }
             }
-            var samlResponseType = DeSerializeToClass<ResponseType>(base64EncodedSamlResponse);
+            var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseString);
             return samlResponseType;
         }
         public void CheckIfReplayAttack(string inResponseTo, string base64OriginalSamlRequestId)
@@ -276,12 +314,12 @@ namespace Saml2Core
         public string SamlRequest
         {
             get { return GetParameter(Saml2Constants.Parameters.SamlRequest); }
-            set { SetParameter(Saml2Constants.Parameters.SamlRequest, EncodeDeflateMessage(value)); }
+            set { SetParameter(Saml2Constants.Parameters.SamlRequest, value); }
         }
         public string Relay
         {
             get { return GetParameter(Saml2Constants.Parameters.RelayState); }
-            set { SetParameter(Saml2Constants.Parameters.RelayState, EncodeDeflateMessage(value)); }
+            set { SetParameter(Saml2Constants.Parameters.RelayState, value); }
         }
         public string SigAlg
         {
@@ -298,7 +336,7 @@ namespace Saml2Core
             get { return GetParameter(Saml2Constants.Parameters.SamlResponse); }
             set { SetParameter(Saml2Constants.Parameters.SamlResponse, EncodeDeflateMessage(value)); }
         }
-        public virtual string BuildRedirectUrl()
+        public virtual StringBuilder BuildRedirectUrl()
         {
             var _issuerAddress = this.IssuerAddress;
             StringBuilder strBuilder = new StringBuilder(_issuerAddress);
@@ -318,12 +356,11 @@ namespace Saml2Core
                 else
                 {
                     strBuilder.Append('&');
-                }
-                strBuilder.Append(Uri.EscapeDataString(parameter.Key));
-                strBuilder.Append('=');
+                }            
+                strBuilder.AppendFormat("{0}=", parameter.Key);            
                 strBuilder.Append(parameter.Value);
             }
-            return strBuilder.ToString();
+            return strBuilder;
         }
         public static IDPSSODescriptor GetIdpDescriptor(EntityDescriptor configuration)
         {
@@ -441,9 +478,9 @@ namespace Saml2Core
 
             //convert to uri to get the query string later
             Uri uri = new Uri(result);
-
+            var queryString = uri.Query.Remove(0, 1);
             // Calculate the signature of the URL as described in [SAMLBind] section 3.4.4.1.            
-            var signature = SignData(key, Encoding.UTF8.GetBytes(uri.Query), hashAlgorithmName);
+            var signature = SignData(key, Encoding.UTF8.GetBytes(queryString), hashAlgorithmName);
 
             return HttpUtility.UrlEncode(Convert.ToBase64String(signature));
         }

@@ -354,9 +354,11 @@ namespace Saml2Core
             //create relay state
             string relayState = Options.StateDataFormat.Protect(properties);
 
+            var sendAssertionTo = new Uri(new Uri(CurrentUri), Options.CallbackPath).AbsoluteUri;
+
             //AuthnRequest ID value which needs to be included in the AuthnRequest
             //we will need this to create the same session cookie as well
-            var authnRequestId = Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
+            var authnRequestId = "id" + Guid.NewGuid().ToString("N");//Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
 
             //create saml cookie session to check against then delete it
             //According to the SAML specification, the SAML response returned by the IdP
@@ -374,7 +376,7 @@ namespace Saml2Core
             Response.Cookies.Append(Saml2Constants.InResponseToId, authnRequestId.Base64Encode(),
                 Options.Saml2CoreCookie.Build(Context));
 
-            var samlRequest = saml2Message.CreateSignInRequest(Options, authnRequestId, properties);
+            var samlRequest = saml2Message.CreateSignInRequest(Options, authnRequestId, relayState, sendAssertionTo);
 
             if (Options.AuthenticationMethod == Saml2AuthenticationBehaviour.RedirectGet)
             {
