@@ -76,46 +76,36 @@ namespace Saml2Core
             }
         }
         public string CreateSignInRequest(Saml2Options options,
-            string authnRequestId, string relayState, string sendAssertionTo)
+            string authnRequestId, string relayState)
         {
             var idpConfiguration = GetIdpDescriptor(options.Configuration);
             var idpSingleServiceSignOnEndpoints = idpConfiguration.SingleSignOnServices;
             var issuer = GetSignOnEndpoint(idpSingleServiceSignOnEndpoints, options.AuthenticationMethod);
 
-            NameIDType entityID = new NameIDType()
-            {
-                Value = options.EntityId
-            };
             var authnRequest = new AuthnRequestType()
             {
                 ID = authnRequestId,
-                Issuer = entityID,
+                Issuer = new NameIDType()
+                {
+                    Value = options.EntityId
+                },
                 Version = Saml2Constants.Version,
                 ForceAuthn = options.ForceAuthn,
                 ForceAuthnSpecified = true,
                 IsPassive = options.IsPassive,
                 IsPassiveSpecified = true,
-                //new NameIDType()
-                //{
-                //    Format = options.NameId.Format,
-                //    Value = options.EntityId,
-                //    SPProvidedID = options.NameId.SpProvidedId,
-                //    SPNameQualifier = options.NameId.SpNameQualifier,
-                //    NameQualifier = options.NameId.NameQualifier
-                //},
                 NameIDPolicy = new NameIDPolicyType()
                 {
-                    Format = options.NameId.Format,
-                    SPNameQualifier = options.NameId.SpNameQualifier,
+                    Format = options.NameIdPolicy.Format,
+                    SPNameQualifier = options.NameIdPolicy.SpNameQualifier,
                     AllowCreate = true,
                     AllowCreateSpecified = true
                 },
-                Destination =  issuer,
-                //AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex,
-                AssertionConsumerServiceURL = sendAssertionTo,//options.AssertionConsumerServiceUrl.AbsoluteUri,
-                ProtocolBinding =  GetProtocolBinding(options.ResponseProtocolBinding),
+                Destination = issuer,
+                AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex,
+                AssertionConsumerServiceURL = options.AssertionConsumerServiceUrl.AbsoluteUri,
+                ProtocolBinding = GetProtocolBinding(options.ResponseProtocolBinding),
                 IssueInstant = DateTime.UtcNow,
-               
             };
 
             //create xml
@@ -125,7 +115,7 @@ namespace Saml2Core
             {
                 IssuerAddress = issuer
             };
-                      
+
 
             //authentication request
             //saml2Message.SamlRequest = authnRequestXmlDoc.OuterXml;           
@@ -154,37 +144,27 @@ namespace Saml2Core
                         XmlDocumentExtensions.SetSignatureAlgorithm(options.SigningCertificate);
 
                     //get signAlg
-                    saml2Message.SigAlg = signatureMethod.UrlEncode().UpperCaseUrlEncode();//GetQuerySignAlg(signatureMethod);
+                    saml2Message.SigAlg = GetQuerySignAlg(signatureMethod);
 
                     var builder = new StringBuilder();
-                    //var requestSignedUrlString = builder
-                    //    .AppendFormat("{0}=", Saml2Constants.Parameters.SamlRequest)
-                    //    .Append((authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode())
-                    //    .AppendFormat("&{0}=", Saml2Constants.Parameters.RelayState)
-                    //    .Append(relayState.DeflateEncode().UrlEncode())
-                    //    .AppendFormat("&{0}=", Saml2Constants.Parameters.SigAlg)
-                    //    .Append(signatureMethod.UrlEncode().UpperCaseUrlEncode());
-
                     var requestSignedUrlString = builder
-                        .AppendFormat("{0}=", Saml2Constants.Parameters.SamlRequest)
-                        .Append((authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode())
-                        .AppendFormat("&{0}=", Saml2Constants.Parameters.RelayState)
-                        .Append(relayState.DeflateEncode().UrlEncode())
-                        .AppendFormat("&{0}=", Saml2Constants.Parameters.SigAlg)
-                        .Append(signatureMethod.UrlEncode().UpperCaseUrlEncode());
+                         .AppendFormat("{0}=", Saml2Constants.Parameters.SamlRequest)
+                         .Append(saml2Message.SamlRequest)
+                         .AppendFormat("&{0}=", Saml2Constants.Parameters.RelayState)
+                         .Append(saml2Message.Relay)
+                         .AppendFormat("&{0}=", Saml2Constants.Parameters.SigAlg)
+                         .Append(saml2Message.SigAlg);
 
+                    //var signature = SignData(key, Encoding.UTF8.GetBytes(requestSignedUrlString.ToString()),
+                    //    options.SigningCertificateHashAlgorithmName);
 
-
-                    //Uri uri = new Uri(requestSignedUrlString);
-                    //var queryString = $"{Saml2Constants.Parameters.SamlRequest}={saml2Message.SamlRequest}&{Saml2Constants.Parameters.RelayState}={saml2Message.Relay}&{Saml2Constants.Parameters.SigAlg}={saml2Message.SigAlg}";//uri.Query.Remove(0, 1);
-
-                    var signature = SignData(key, Encoding.UTF8.GetBytes(requestSignedUrlString.ToString()), 
-                        options.SigningCertificateHashAlgorithmName);
                     //get signature                
-                    saml2Message.Signature = HttpUtility.UrlEncode(Convert.ToBase64String(signature));
+                    saml2Message.Signature = GetQuerySignature(key, requestSignedUrlString.ToString(), options.SigningCertificateHashAlgorithmName);
+                    //HttpUtility.UrlEncode(Convert.ToBase64String(signature));
 
                     requestSignedUrlString.AppendFormat("&{0}=", Saml2Constants.Parameters.Signature)
-                        .Append(HttpUtility.UrlEncode(Convert.ToBase64String(signature)));
+                        .Append(saml2Message.Signature);
+
                     //GetQuerySignature(options.SigningCertificate.PrivateKey,requestSignedUrlString, options.SigningCertificateHashAlgorithmName);
                     //var result = $"{Saml2Constants.Parameters.SamlRequest}={saml2Message.SamlRequest}&{Saml2Constants.Parameters.RelayState}={saml2Message.Relay}&{Saml2Constants.Parameters.SigAlg}={saml2Message.SigAlg}&{Saml2Constants.Parameters.Signature}={saml2Message.Signature}";
                     return $"{issuer}?{requestSignedUrlString}";
@@ -255,7 +235,7 @@ namespace Saml2Core
                     throw new Saml2Exception("Assertion signature is not valid");
                 }
             }
-            return DeSerializeToClass<AssertionType>(token);           
+            return DeSerializeToClass<AssertionType>(token);
         }
         public ResponseType GetSamlResponseToken(string base64EncodedSamlResponse, Saml2Options options)
         {
@@ -356,8 +336,8 @@ namespace Saml2Core
                 else
                 {
                     strBuilder.Append('&');
-                }            
-                strBuilder.AppendFormat("{0}=", parameter.Key);            
+                }
+                strBuilder.AppendFormat("{0}=", parameter.Key);
                 strBuilder.Append(parameter.Value);
             }
             return strBuilder;
@@ -467,7 +447,7 @@ namespace Saml2Core
         //To construct the signature, a string consisting of the concatenation of the RelayState(if present),
         //SigAlg, and SAMLRequest(or SAMLResponse) query string parameters(each one URLencoded) is constructed
         //in one of the following ways(ordered as 'SAMLRequest=value&RelayState=value&SigAlg=value')
-        private string GetQuerySignature(AsymmetricAlgorithm key, string result, HashAlgorithmName hashAlgorithmName)
+        private string GetQuerySignature(AsymmetricAlgorithm key, string queryString, HashAlgorithmName hashAlgorithmName)
         {
             // Check if the key is of a supported type. [SAMLBind] sect. 3.4.4.1 specifies this.
             if (!(key is RSA || key is DSA || key is ECDsa || key == null))
@@ -476,9 +456,6 @@ namespace Saml2Core
             //if (key == null)
             //    return;
 
-            //convert to uri to get the query string later
-            Uri uri = new Uri(result);
-            var queryString = uri.Query.Remove(0, 1);
             // Calculate the signature of the URL as described in [SAMLBind] section 3.4.4.1.            
             var signature = SignData(key, Encoding.UTF8.GetBytes(queryString), hashAlgorithmName);
 
@@ -528,7 +505,7 @@ namespace Saml2Core
             {
                 return ((T)xmlSerializer.Deserialize(reader));
             }
-        }        
+        }
         private static string GetProtocolBinding(Saml2ResponseProtocolBinding responseProtocolBinding)
         {
             switch (responseProtocolBinding)

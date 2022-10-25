@@ -61,13 +61,10 @@ namespace Saml2Core
             RequireHttpsMetadata = true;
             //RequestedAuthnContext =
             ForceAuthn = true;
-            NameId = new NameId
+            NameIdPolicy = new NameIdPolicy
             {
-                Format = NameIDFormats.Unspecified,
-                SpNameQualifier =null,
-                NameQualifier = null,
-                SpProvidedId = null,
-                Value = EntityId
+                Format = NameIDFormats.Persistent,
+                SpNameQualifier =null
             };
             IsPassive = false;
             AssertionConsumerServiceIndex = 0;
@@ -252,7 +249,7 @@ namespace Saml2Core
         /// <value>
         /// The name identifier format.
         /// </value>
-        public NameId NameId { get; set; }
+        public NameIdPolicy NameIdPolicy { get; set; }
         /// <summary>
         /// Gets or sets a value indicating whether this 
         /// instance is passive.

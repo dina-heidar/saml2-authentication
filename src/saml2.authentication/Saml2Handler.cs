@@ -183,13 +183,10 @@ namespace Saml2Core
                 if (assertion.Subject.Items.Any(x => x.GetType() == typeof(NameIDType)))
                 {
                     var nameIdType = (NameIDType)assertion.Subject.Items.FirstOrDefault(x => x.GetType() == typeof(NameIDType));
-                    Options.NameId = new NameId
-                    {
-                        NameQualifier = nameIdType.NameQualifier,
+                    Options.NameIdPolicy = new NameIdPolicy
+                    {                      
                         SpNameQualifier = nameIdType.SPNameQualifier,
-                        Format = nameIdType.Format,
-                        SpProvidedId = nameIdType.SPProvidedID,
-                        Value = nameIdType.Value
+                        Format = nameIdType.Format                     
                     };
                 }
 
@@ -354,11 +351,9 @@ namespace Saml2Core
             //create relay state
             string relayState = Options.StateDataFormat.Protect(properties);
 
-            var sendAssertionTo = new Uri(new Uri(CurrentUri), Options.CallbackPath).AbsoluteUri;
-
             //AuthnRequest ID value which needs to be included in the AuthnRequest
             //we will need this to create the same session cookie as well
-            var authnRequestId = "id" + Guid.NewGuid().ToString("N");//Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
+            var authnRequestId = Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
 
             //create saml cookie session to check against then delete it
             //According to the SAML specification, the SAML response returned by the IdP
@@ -376,7 +371,7 @@ namespace Saml2Core
             Response.Cookies.Append(Saml2Constants.InResponseToId, authnRequestId.Base64Encode(),
                 Options.Saml2CoreCookie.Build(Context));
 
-            var samlRequest = saml2Message.CreateSignInRequest(Options, authnRequestId, relayState, sendAssertionTo);
+            var samlRequest = saml2Message.CreateSignInRequest(Options, authnRequestId, relayState);
 
             if (Options.AuthenticationMethod == Saml2AuthenticationBehaviour.RedirectGet)
             {

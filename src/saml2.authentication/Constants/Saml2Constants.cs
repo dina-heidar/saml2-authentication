@@ -72,7 +72,7 @@ namespace Saml2Core
             /// The email. Indicates that the content of the 
             /// element is in the form of an email address
             /// </summary>
-            public const string Email = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
+            public const string EmailAddress = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
             /// <summary>
             /// The persistent. Indicates that the content of the element is a persistent 
             /// opaque identifier for a principal that is specific to  an identity provider 
