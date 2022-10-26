@@ -22,6 +22,7 @@
 
 using System;
 using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -68,13 +69,23 @@ namespace Saml2Core
             if (name is null)
             {
                 throw new ArgumentNullException(nameof(name));
-            }          
-           
+            }
+
             options.DataProtectionProvider = options.DataProtectionProvider ?? _dp;
 
             if (string.IsNullOrEmpty(options.SignOutScheme))
             {
                 options.SignOutScheme = options.SignInScheme;
+            }
+
+            if (options.SigningCertificate != null && !options.SigningCertificate.HasPrivateKey)
+            {
+                throw new Saml2Exception("Service provider signing certificate does not have a private key");
+            }
+
+            if (options.EncryptingCertificate != null && options.EncryptingCertificate.GetRSAPrivateKey() == null)
+            {
+                throw new Saml2Exception("Service provider ecryption certificate must be an RSA certificate.");
             }
 
             if (options.StateDataFormat == null)
@@ -100,7 +111,7 @@ namespace Saml2Core
                 !string.IsNullOrEmpty(options.EntityId))
             {
                 options.TokenValidationParameters.ValidAudience = options.EntityId;
-            }                      
+            }
 
             if (options.Backchannel == null)
             {

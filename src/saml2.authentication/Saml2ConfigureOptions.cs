@@ -91,6 +91,7 @@ namespace Saml2Core
             options.SignedOutRedirectUri = options.SignedOutRedirectUri;
             options.SignOutScheme = options.SignOutScheme;
             options.SigningCertificate = options.SigningCertificate;
+            options.EncryptingCertificate = options.EncryptingCertificate;
             options.SigningCertificateHashAlgorithmName = options.SigningCertificateHashAlgorithmName;
             options.UseTokenLifetime = options.UseTokenLifetime;
             options.VerifySignatureOnly = options.VerifySignatureOnly;

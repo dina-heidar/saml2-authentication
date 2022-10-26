@@ -138,7 +138,7 @@ namespace Saml2Core
                 {
                     saml2Message.SamlRequest = (authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
                     //relay state
-                    saml2Message.Relay = relayState.DeflateEncode().UrlEncode();
+                    saml2Message.RelayState = relayState.DeflateEncode().UrlEncode();
 
                     (var key, var signatureMethod, var keyName) =
                         XmlDocumentExtensions.SetSignatureAlgorithm(options.SigningCertificate);
@@ -146,51 +146,39 @@ namespace Saml2Core
                     //get signAlg
                     saml2Message.SigAlg = GetQuerySignAlg(signatureMethod);
 
-                    var builder = new StringBuilder();
-                    var requestSignedUrlString = builder
-                         .AppendFormat("{0}=", Saml2Constants.Parameters.SamlRequest)
-                         .Append(saml2Message.SamlRequest)
-                         .AppendFormat("&{0}=", Saml2Constants.Parameters.RelayState)
-                         .Append(saml2Message.Relay)
-                         .AppendFormat("&{0}=", Saml2Constants.Parameters.SigAlg)
-                         .Append(saml2Message.SigAlg);
-
-                    //var signature = SignData(key, Encoding.UTF8.GetBytes(requestSignedUrlString.ToString()),
-                    //    options.SigningCertificateHashAlgorithmName);
-
                     //get signature                
-                    saml2Message.Signature = GetQuerySignature(key, requestSignedUrlString.ToString(), options.SigningCertificateHashAlgorithmName);
-                    //HttpUtility.UrlEncode(Convert.ToBase64String(signature));
-
-                    requestSignedUrlString.AppendFormat("&{0}=", Saml2Constants.Parameters.Signature)
-                        .Append(saml2Message.Signature);
-
-                    //GetQuerySignature(options.SigningCertificate.PrivateKey,requestSignedUrlString, options.SigningCertificateHashAlgorithmName);
-                    //var result = $"{Saml2Constants.Parameters.SamlRequest}={saml2Message.SamlRequest}&{Saml2Constants.Parameters.RelayState}={saml2Message.Relay}&{Saml2Constants.Parameters.SigAlg}={saml2Message.SigAlg}&{Saml2Constants.Parameters.Signature}={saml2Message.Signature}";
-                    return $"{issuer}?{requestSignedUrlString}";
+                    saml2Message.Signature = GetQuerySignature(key, saml2Message.BuildRedirectUrl(), options.SigningCertificateHashAlgorithmName);
                 }
-                return issuer; // saml2Message.BuildRedirectUrl();
+                return saml2Message.BuildRedirectUrl();
             }
         }
-        public virtual string GetToken(ResponseType responseType, X509Certificate2 x509Certificate2)
+        public virtual string GetToken(ResponseType responseType, X509Certificate2 encryptingCertificate2 = null)
         {
-            var key = (AsymmetricAlgorithm)x509Certificate2.GetRSAPublicKey() ??
-                x509Certificate2.GetECDsaPublicKey();
-            return GetTokenUsingXmlReader(responseType, key);
+            if (encryptingCertificate2 != null)
+            {
+                var key = (AsymmetricAlgorithm)encryptingCertificate2.GetRSAPrivateKey();
+                return GetTokenUsingXmlReader(responseType, key);
+            }
+            return GetTokenUsingXmlReader(responseType);
         }
-        public virtual string GetTokenUsingXmlReader(ResponseType responseType, AsymmetricAlgorithm key)
+        public virtual string GetTokenUsingXmlReader(ResponseType responseType, AsymmetricAlgorithm key = null)
         {
-            string token;
-            string xmlTemplate;
+            string token;          
             var assertion = responseType.Items[0];
             if (assertion == null)
             {
                 throw new Saml2Exception("Missing assertion");
             }
 
-            //check if its a decrypted assertion
+            //check if it is a decrypted assertion and 
+            //if the encryption certificate was provided
             if (assertion.GetType() == typeof(EncryptedElementType))
             {
+                if (key == null)
+                {
+                    throw new Saml2Exception("Unable to find encryption certificate RSA private key");
+                }
+
                 var encryptedElement = (EncryptedElementType)assertion;
                 SymmetricAlgorithm sessionKey;
 
@@ -258,15 +246,15 @@ namespace Saml2Core
             {
                 if (!ValidateXmlSignature(doc, options.VerifySignatureOnly, options.Configuration))
                 {
-                    throw new Saml2Exception("Response signature is not valid");
+                    throw new Saml2Exception("Response signature is not valid.");
                 }
             }
             var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseString);
             return samlResponseType;
         }
-        public void CheckIfReplayAttack(string inResponseTo, string base64OriginalSamlRequestId)
+        public void CheckIfReplayAttack(string inResponseTo, string inResponseToCookieValue)
         {
-            string originalSamlRequestId = base64OriginalSamlRequestId.Base64Decode();
+            string originalSamlRequestId = inResponseToCookieValue.Base64Decode();
 
             if (string.IsNullOrEmpty(originalSamlRequestId) || string.IsNullOrEmpty(inResponseTo))
             {
@@ -296,7 +284,7 @@ namespace Saml2Core
             get { return GetParameter(Saml2Constants.Parameters.SamlRequest); }
             set { SetParameter(Saml2Constants.Parameters.SamlRequest, value); }
         }
-        public string Relay
+        public string RelayState
         {
             get { return GetParameter(Saml2Constants.Parameters.RelayState); }
             set { SetParameter(Saml2Constants.Parameters.RelayState, value); }
@@ -316,7 +304,7 @@ namespace Saml2Core
             get { return GetParameter(Saml2Constants.Parameters.SamlResponse); }
             set { SetParameter(Saml2Constants.Parameters.SamlResponse, EncodeDeflateMessage(value)); }
         }
-        public virtual StringBuilder BuildRedirectUrl()
+        public virtual string BuildRedirectUrl()
         {
             var _issuerAddress = this.IssuerAddress;
             StringBuilder strBuilder = new StringBuilder(_issuerAddress);
@@ -340,7 +328,7 @@ namespace Saml2Core
                 strBuilder.AppendFormat("{0}=", parameter.Key);
                 strBuilder.Append(parameter.Value);
             }
-            return strBuilder;
+            return strBuilder.ToString();
         }
         public static IDPSSODescriptor GetIdpDescriptor(EntityDescriptor configuration)
         {
@@ -359,9 +347,9 @@ namespace Saml2Core
             var signatureElement = xmlDoc.GetElementsByTagName(Saml2Constants.Parameters.Signature,
                 Saml2Constants.Namespaces.DsNamespace);
 
-            // Checking If the Response or the Assertion has been signed once and only once.
+            // Checking if the response or the assertion has been signed once and only once.
             if (signatureElement.Count != 1)
-                throw new InvalidOperationException("Too many signatures!");
+                throw new Saml2Exception("Too many signatures!");
 
             signedXml.LoadXml((XmlElement)signatureElement[0]);
 
@@ -371,13 +359,8 @@ namespace Saml2Core
             var signedCertificate = (X509Certificate2)x509data.Certificates[0];
             var idpCertificates = GetIdpDescriptor(configuration).SigningCertificates;
 
-            // validate references here!
-            if ((signedXml.SignedInfo.References[0] as Reference)?.Uri != "")
-                throw new InvalidOperationException("Check your references!");
-
             return signedXml.CheckSignature(GetIdpCertificate(idpCertificates, signedCertificate.SerialNumber),
                 verifySignatureOnly);
-
         }
         private SymmetricAlgorithm ExtractSessionKey(EncryptedElementType encryptedElement,
             AsymmetricAlgorithm privateKey)
@@ -389,31 +372,30 @@ namespace Saml2Core
                     XmlElement encryptedKeyElement = (XmlElement)encryptedElement.EncryptedData.KeyInfo.Items[0];
                     var encryptedKey = new EncryptedKey();
                     encryptedKey.LoadXml(encryptedKeyElement);
-                    return ToSymmetricKey(encryptedKey, encryptedElement.EncryptedData.EncryptionMethod.Algorithm, privateKey);
+                    return ToSymmetricKey(encryptedKey, privateKey);
                 }
             }
             throw new Saml2Exception("Unable to locate assertion decryption key.");
         }
-        private SymmetricAlgorithm ToSymmetricKey(EncryptedKey encryptedKey, string hashAlgorithm,
+        private SymmetricAlgorithm ToSymmetricKey(EncryptedKey encryptedKey,
             AsymmetricAlgorithm privateKey)
         {
-
             bool useOaep = encryptedKey.EncryptionMethod.KeyAlgorithm == EncryptedXml.XmlEncRSAOAEPUrl;
 
             if (encryptedKey.CipherData != null)
             {
                 byte[] cipherValue = encryptedKey.CipherData.CipherValue;
-                var key = GetKeyInstance(hashAlgorithm);
+                var key = GetKeyInstance();
+
                 key.Key = EncryptedXml.DecryptKey(cipherValue, (RSA)privateKey, useOaep);
                 return key;
             }
-
-            throw new NotImplementedException("Unable to decode CipherData of type \"CipherReference\".");
+            throw new Saml2Exception("Unable to decode CipherData of type \"CipherReference\".");
         }
-        private static SymmetricAlgorithm GetKeyInstance(string hashAlgorithm)
+        private static SymmetricAlgorithm GetKeyInstance()
         {
-            Rijndael key = Rijndael.Create(hashAlgorithm);
-            return key;
+            var sessionKey = Aes.Create();
+            return sessionKey;
         }
         private static X509Certificate2 GetIdpCertificate(X509Certificate2[] x509Certificate2s,
             string serialNumber)
@@ -447,7 +429,7 @@ namespace Saml2Core
         //To construct the signature, a string consisting of the concatenation of the RelayState(if present),
         //SigAlg, and SAMLRequest(or SAMLResponse) query string parameters(each one URLencoded) is constructed
         //in one of the following ways(ordered as 'SAMLRequest=value&RelayState=value&SigAlg=value')
-        private string GetQuerySignature(AsymmetricAlgorithm key, string queryString, HashAlgorithmName hashAlgorithmName)
+        private string GetQuerySignature(AsymmetricAlgorithm key, string query, HashAlgorithmName hashAlgorithmName)
         {
             // Check if the key is of a supported type. [SAMLBind] sect. 3.4.4.1 specifies this.
             if (!(key is RSA || key is DSA || key is ECDsa || key == null))
@@ -455,6 +437,9 @@ namespace Saml2Core
             //TODO
             //if (key == null)
             //    return;
+
+            var uri = new Uri(query);
+            var queryString = uri.Query.Remove(0, 1);
 
             // Calculate the signature of the URL as described in [SAMLBind] section 3.4.4.1.            
             var signature = SignData(key, Encoding.UTF8.GetBytes(queryString), hashAlgorithmName);

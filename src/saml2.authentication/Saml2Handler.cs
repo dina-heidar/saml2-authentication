@@ -102,7 +102,7 @@ namespace Saml2Core
             try
             {
                 //get relay
-                var relayState = saml2Message.Relay.DeflateDecompress();
+                var relayState = saml2Message.RelayState.DeflateDecompress();
 
                 //get authentication properties
                 properties = Options.StateDataFormat.Unprotect(relayState);
@@ -120,7 +120,7 @@ namespace Saml2Core
                 {
                     // Extract the user state from properties and reset.
                     properties.Items.TryGetValue(Saml2Defaults.UserstatePropertiesKey, out var userState);
-                    saml2Message.Relay = userState;
+                    saml2Message.RelayState = userState;
                 }
 
                 var messageReceivedContext = new MessageReceivedContext(Context, Scheme, Options, properties)
@@ -160,19 +160,30 @@ namespace Saml2Core
                 //since this is a solicited login (sent from challenge)
                 // we must compare the incoming 'InResponseTo' what we have in the cookie
                 var requestCookies = Request.Cookies;
-                var inResponseTo = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Saml2Constants.InResponseToId))];
+                var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CoreCookie.Name))];
 
                 //read saml response and vaidate signature if needed
                 var responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, Options);
 
                 //validate it is not a replay attack
-                saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseTo);
+                saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
+
+                //cleanup and remove existing saml cookies
+                //no need for it since we checked the inResponseId values
+                Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
+
+                //check what the Idp response is -if it was successful or not
                 saml2Message.CheckStatus(responseToken);
 
-                var token = saml2Message.GetToken(responseToken, Options.SigningCertificate);
+                //get the token and decrypt it is it was encrypted
+                var token = saml2Message.GetToken(responseToken, Options.EncryptingCertificate);
 
-                var assertion = saml2Message.GetAssertion(token, Options);
+                //get the decrypted assertion section 
+                //and check its signature (if that option was set to 'true')
+                var assertion = saml2Message.GetAssertion(token, Options);                
 
+                //we need extract the session index 
+                //and save in a cookie for SLO
                 var session = new AuthnStatementType();
 
                 if (assertion.Items.Any(x => x.GetType() == typeof(AuthnStatementType)))
@@ -180,6 +191,9 @@ namespace Saml2Core
                     session = (AuthnStatementType)assertion.Items.FirstOrDefault(x => x.GetType() == typeof(AuthnStatementType));
                 }
 
+                //TODO
+                //what was this for 
+                //is it to be re-used for logout?
                 if (assertion.Subject.Items.Any(x => x.GetType() == typeof(NameIDType)))
                 {
                     var nameIdType = (NameIDType)assertion.Subject.Items.FirstOrDefault(x => x.GetType() == typeof(NameIDType));
@@ -322,8 +336,14 @@ namespace Saml2Core
             // Save the original challenge URI so we can redirect back to it when we're done.
             if (string.IsNullOrEmpty(properties.RedirectUri))
             {
-                properties.RedirectUri = OriginalPathBase + Options.CallbackPath;
+                properties.RedirectUri =  Options.CallbackPath;
             }
+
+            //// Save the original challenge URI so we can redirect back to it when we're done.
+            //if (string.IsNullOrEmpty(properties.RedirectUri))
+            //{
+            //    properties.RedirectUri = CurrentUri;
+            //}
 
             Logger.PostAuthenticationLocalRedirect(properties.RedirectUri);
 
@@ -365,10 +385,10 @@ namespace Saml2Core
             Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
 
             //create cookie 
-            Options.Saml2CoreCookie.Name = $"{Options.Saml2CoreCookieName}.{relayState.GetHashCode()}";
+            Options.Saml2CoreCookie.Name = $"{Options.Saml2CoreCookieName}.{(uint)relayState.GetHashCode()}";
 
             // append it to response
-            Response.Cookies.Append(Saml2Constants.InResponseToId, authnRequestId.Base64Encode(),
+            Response.Cookies.Append(Options.Saml2CoreCookie.Name, authnRequestId.Base64Encode(),
                 Options.Saml2CoreCookie.Build(Context));
 
             var samlRequest = saml2Message.CreateSignInRequest(Options, authnRequestId, relayState);

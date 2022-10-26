@@ -209,6 +209,15 @@ namespace Saml2Core
         /// </value>
         public PathString DefaultRedirectUrl { get; set; }
         /// <summary>
+        /// Gets or sets the encrypting certificate.
+        /// This is used to decrypt the encrypted 
+        /// assertion. Only RSA is supported.
+        /// </summary>
+        /// <value>
+        /// The encrypting certificate.
+        /// </value>
+        public X509Certificate2 EncryptingCertificate { get; set; }
+        /// <summary>
         /// Gets or sets the service provider entity identifier.
         /// </summary>
         /// <value>
@@ -365,11 +374,12 @@ namespace Saml2Core
         /// If present the outgoing requests will be signed 
         /// using this certificate. The identity provider should
         /// be aware of the this public certficate.
+        /// Both RSA and ECDSA is suported.
         /// </summary>
         /// <value>
         /// The signing certificate.
         /// </value>
-        public X509Certificate2 SigningCertificate { get; set; }
+        public X509Certificate2 SigningCertificate { get; set; }        
         /// <summary>
         /// Gets or sets the name of the signing certificate hash algorithm.
         /// </summary>
