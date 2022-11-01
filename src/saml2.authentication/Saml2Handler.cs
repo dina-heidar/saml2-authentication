@@ -68,6 +68,7 @@ namespace Saml2Core
             _saml2Service = saml2Service;
         }
         protected override async Task<HandleRequestResult> HandleRemoteAuthenticateAsync()
+
         {
             Saml2Message saml2Message = null;
             AuthenticationProperties properties = null;
@@ -180,7 +181,7 @@ namespace Saml2Core
 
                 //get the decrypted assertion section 
                 //and check its signature (if that option was set to 'true')
-                var assertion = saml2Message.GetAssertion(token, Options);                
+                var assertion = saml2Message.GetAssertion(token, Options);
 
                 //we need extract the session index 
                 //and save in a cookie for SLO
@@ -198,9 +199,9 @@ namespace Saml2Core
                 {
                     var nameIdType = (NameIDType)assertion.Subject.Items.FirstOrDefault(x => x.GetType() == typeof(NameIDType));
                     Options.NameIdPolicy = new NameIdPolicy
-                    {                      
+                    {
                         SpNameQualifier = nameIdType.SPNameQualifier,
-                        Format = nameIdType.Format                     
+                        Format = nameIdType.Format
                     };
                 }
 
@@ -272,7 +273,7 @@ namespace Saml2Core
                 string redirectUrl = !string.IsNullOrEmpty(properties.RedirectUri) ? properties.RedirectUri : Options.CallbackPath.ToString();
                 Context.Response.Redirect(redirectUrl, true);
                 Context.User = new ClaimsPrincipal(identity);
-                await Context.SignInAsync(Options.SignInScheme, Context.User, properties);
+                //await Context.SignInAsync(Options.SignInScheme, Context.User, properties);
                 return HandleRequestResult.Success(new AuthenticationTicket(Context.User, properties, Scheme.Name));
             }
             catch (Exception exception)
@@ -336,14 +337,8 @@ namespace Saml2Core
             // Save the original challenge URI so we can redirect back to it when we're done.
             if (string.IsNullOrEmpty(properties.RedirectUri))
             {
-                properties.RedirectUri =  Options.CallbackPath;
+                properties.RedirectUri = CurrentUri;
             }
-
-            //// Save the original challenge URI so we can redirect back to it when we're done.
-            //if (string.IsNullOrEmpty(properties.RedirectUri))
-            //{
-            //    properties.RedirectUri = CurrentUri;
-            //}
 
             Logger.PostAuthenticationLocalRedirect(properties.RedirectUri);
 
@@ -411,7 +406,7 @@ namespace Saml2Core
                 Response.Headers.Add("Pragma", "no-cache");
                 Response.Headers.Add("Expires", "Thu, 01 Jan 1970 00:00:00 GMT");
 
-                await Response.Body.WriteAsync(buffer,0, buffer.Length);
+                await Response.Body.WriteAsync(buffer, 0, buffer.Length);
             }
         }
 

@@ -24,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
@@ -32,12 +33,9 @@ using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
 using MetadataBuilder.Schema.Metadata;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.IdentityModel.Protocols;
-using Microsoft.IdentityModel.Xml;
 using Saml.MetadataBuilder;
 using static Saml2Core.Saml2Constants;
-using Reference = System.Security.Cryptography.Xml.Reference;
 
 namespace Saml2Core
 {
@@ -94,6 +92,7 @@ namespace Saml2Core
                 ForceAuthnSpecified = true,
                 IsPassive = options.IsPassive,
                 IsPassiveSpecified = true,
+                RequestedAuthnContext = GetRequestedAuthnContext(options.RequestedAuthnContext),
                 NameIDPolicy = new NameIDPolicyType()
                 {
                     Format = options.NameIdPolicy.Format,
@@ -126,9 +125,11 @@ namespace Saml2Core
                 if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
                 {
                     var signedAuthnRequestXmlDoc = authnRequestXmlDoc.AddXmlSignature(options.SigningCertificate);
-                    saml2Message.SamlRequest = signedAuthnRequestXmlDoc.OuterXml;
+                    saml2Message.SamlRequest = (signedAuthnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
+                    //saml2Message.RelayState = relayState.DeflateEncode();//.UrlEncode();
                 }
-                return saml2Message.BuildFormPost();
+                var t = saml2Message.BuildFormPost();
+                return t;
             }
             else
             {
@@ -146,7 +147,7 @@ namespace Saml2Core
                     //get signAlg
                     saml2Message.SigAlg = GetQuerySignAlg(signatureMethod);
 
-                    //get signature                
+                    //get signature
                     saml2Message.Signature = GetQuerySignature(key, saml2Message.BuildRedirectUrl(), options.SigningCertificateHashAlgorithmName);
                 }
                 return saml2Message.BuildRedirectUrl();
@@ -163,7 +164,7 @@ namespace Saml2Core
         }
         public virtual string GetTokenUsingXmlReader(ResponseType responseType, AsymmetricAlgorithm key = null)
         {
-            string token;          
+            string token;
             var assertion = responseType.Items[0];
             if (assertion == null)
             {
@@ -330,6 +331,36 @@ namespace Saml2Core
             }
             return strBuilder.ToString();
         }
+
+        public virtual string BuildFormPost()
+        {
+            var _issuerAddress = this.IssuerAddress;
+
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append("<html><head><title>");
+            stringBuilder.Append(WebUtility.HtmlEncode(PostTitle));
+            stringBuilder.Append("</title></head><body><form method=\"POST\" name=\"hiddenform\" action=\"");
+            stringBuilder.Append(WebUtility.HtmlEncode(_issuerAddress));
+            stringBuilder.Append("\">");
+            foreach (KeyValuePair<string, string> parameter in this.Parameters)
+            {
+                stringBuilder.Append("<input type=\"hidden\" name=\"");
+                stringBuilder.Append(WebUtility.HtmlEncode(parameter.Key));
+                stringBuilder.Append("\" value=\"");
+                stringBuilder.Append(WebUtility.HtmlEncode(parameter.Value));
+                stringBuilder.Append("\" />");
+            }
+
+            stringBuilder.Append("<noscript><p>");
+            stringBuilder.Append(WebUtility.HtmlEncode(ScriptDisabledText));
+            stringBuilder.Append("</p><input type=\"submit\" value=\"");
+            stringBuilder.Append(WebUtility.HtmlEncode(ScriptButtonText));
+            stringBuilder.Append("\" /></noscript>");
+            stringBuilder.Append("</form>");
+            stringBuilder.Append(Script);
+            stringBuilder.Append("</body></html>");
+            return stringBuilder.ToString();
+        }
         public static IDPSSODescriptor GetIdpDescriptor(EntityDescriptor configuration)
         {
             var idpConfiguration = (configuration.Items
@@ -340,6 +371,23 @@ namespace Saml2Core
 
         #region Private 
 
+        private static RequestedAuthnContextType GetRequestedAuthnContext(RequestedAuthnContext requestedAuthnContext)
+        {
+            if (requestedAuthnContext != null)
+            {
+                Enum.TryParse<AuthnContextComparisonType>(requestedAuthnContext.ComparisonType, out AuthnContextComparisonType comparisonType);
+                Enum.TryParse<ItemsChoiceType7>(requestedAuthnContext.AuthnContextClassRef, out ItemsChoiceType7 itemsChoiceType7);
+
+                return new RequestedAuthnContextType
+                {
+                    Comparison = comparisonType,
+                    ComparisonSpecified = true,
+                    ItemsElementName = new ItemsChoiceType7[] { itemsChoiceType7 },
+                    Items = requestedAuthnContext.AuthnContextRefTypes
+                };
+            }
+            return null;
+        }
         private static bool ValidateXmlSignature(XmlDocument xmlDoc,
             bool verifySignatureOnly, EntityDescriptor configuration)
         {

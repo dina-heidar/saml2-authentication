@@ -23,7 +23,6 @@
 using System;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using MetadataBuilder.Schema.Metadata;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Internal;
@@ -32,6 +31,7 @@ using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Tokens.Saml2;
 using Saml.MetadataBuilder;
+using Saml.MetadataBuilder.Constants;
 using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
@@ -59,7 +59,7 @@ namespace Saml2Core
 
             //saml request
             RequireHttpsMetadata = true;
-            //RequestedAuthnContext =
+            RequestedAuthnContext = RequestedAuthnContextTypes.FormsAuthentication();
             ForceAuthn = true;
             NameIdPolicy = new NameIdPolicy
             {
@@ -115,6 +115,7 @@ namespace Saml2Core
             };
 
             AllowUnsolicitedLogins = false;
+            SkipUnrecognizedRequests = true;
         }
 
         /// <summary>
@@ -312,6 +313,13 @@ namespace Saml2Core
         /// </value>
         /// 
         public PathString RemoteSignOutPath { get; set; }
+        /// <summary>
+        /// Gets or sets the requested authn context.
+        /// </summary>
+        /// <value>
+        /// The requested authn context.
+        /// </value>
+        public RequestedAuthnContext RequestedAuthnContext { get; set; }
         /// <summary>
         /// Gets or sets a value indicating whether [require HTTPS metadata].
         /// </summary>
