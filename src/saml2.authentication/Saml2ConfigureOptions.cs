@@ -66,7 +66,6 @@ namespace Saml2Core
             SetCookie(options.Saml2CoreCookie);
 
             //saml2 options
-            options.ArtifactResolutionPath = options.ArtifactResolutionPath;
             options.AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex;
             options.AssertionConsumerServiceUrl = options.AssertionConsumerServiceUrl;
             options.AuthenticationMethod = options.AuthenticationMethod;
@@ -77,7 +76,7 @@ namespace Saml2Core
             options.DefaultMetadataFileName = options.DefaultMetadataFileName;
             options.DefaultRedirectUrl = options.DefaultRedirectUrl;
             options.EntityId = options.EntityId;
-            options.ForceAuthn = options.ForceAuthn;           
+            options.ForceAuthn = options.ForceAuthn;
             options.IsPassive = options.IsPassive;
             options.LogoutChannel = options.LogoutChannel;
             options.LogoutMethod = options.LogoutMethod;
@@ -85,7 +84,7 @@ namespace Saml2Core
             options.RemoteSignOutPath = options.RemoteSignOutPath;
             options.RequireHttpsMetadata = options.RequireHttpsMetadata;
             options.RequireMessageSigned = options.RequireMessageSigned;
-            options.ResponseProtocolBinding = options.ResponseProtocolBinding;           
+            options.ResponseProtocolBinding = options.ResponseProtocolBinding;
             options.Saml2CoreCookieName = options.Saml2CoreCookieName;
             options.SignOutPath = options.SignOutPath.Value;
             options.SignedOutRedirectUri = options.SignedOutRedirectUri;

@@ -23,21 +23,21 @@
 namespace Saml2Core
 {
     public class Saml2Constants
-    {
+    {       
         public const string Version = "2.0";
         public const string InResponseToId = "Saml2InResponseToId";
 
         public static class StatusCodes
         {
-            public const string Success = "urn:oasis:names:tc:SAML:2.0:status:Success";           
-            public const string Requester = "urn:oasis:names:tc:SAML:2.0:status:Requester";           
-            public const string Responder = "urn:oasis:names:tc:SAML:2.0:status:Responder";           
-            public const string VersionMismatch = "urn:oasis:names:tc:SAML:2.0:status:VersionMismatch";           
-            public const string AuthnFailed = "urn:oasis:names:tc:SAML:2.0:status:AuthnFailed";           
-            public const string InvalidAttrNameOrValue = "urn:oasis:names:tc:SAML:2.0:status:InvalidAttrNameOrValue";            
-            public const string InvalidNameIdPolicy = "urn:oasis:names:tc:SAML:2.0:status:InvalidNameIDPolicy";           
-            public const string NoAuthnContext = "urn:oasis:names:tc:SAML:2.0:status:NoAuthnContext";           
-            public const string NoAvailableIDP = "urn:oasis:names:tc:SAML:2.0:status:NoAvailableIDP";           
+            public const string Success = "urn:oasis:names:tc:SAML:2.0:status:Success";
+            public const string Requester = "urn:oasis:names:tc:SAML:2.0:status:Requester";
+            public const string Responder = "urn:oasis:names:tc:SAML:2.0:status:Responder";
+            public const string VersionMismatch = "urn:oasis:names:tc:SAML:2.0:status:VersionMismatch";
+            public const string AuthnFailed = "urn:oasis:names:tc:SAML:2.0:status:AuthnFailed";
+            public const string InvalidAttrNameOrValue = "urn:oasis:names:tc:SAML:2.0:status:InvalidAttrNameOrValue";
+            public const string InvalidNameIdPolicy = "urn:oasis:names:tc:SAML:2.0:status:InvalidNameIDPolicy";
+            public const string NoAuthnContext = "urn:oasis:names:tc:SAML:2.0:status:NoAuthnContext";
+            public const string NoAvailableIDP = "urn:oasis:names:tc:SAML:2.0:status:NoAvailableIDP";
             public const string NoPassive = "urn:oasis:names:tc:SAML:2.0:status:NoPassive";
             public const string NoSupportedIDP = "urn:oasis:names:tc:SAML:2.0:status:NoSupportedIDP";
             public const string PartialLogout = "urn:oasis:names:tc:SAML:2.0:status:PartialLogout";
@@ -48,7 +48,7 @@ namespace Saml2Core
             public const string RequestVersionTooHigh = "urn:oasis:names:tc:SAML:2.0:status:RequestVersionTooHigh";
             public const string RequestVersionTooLow = "urn:oasis:names:tc:SAML:2.0:status:RequestVersionTooLow";
             public const string ResourceNotRecognized = "urn:oasis:names:tc:SAML:2.0:status:ResourceNotRecognized";
-            public const string TooManyResponses = "urn:oasis:names:tc:SAML:2.0:status:TooManyResponses";          
+            public const string TooManyResponses = "urn:oasis:names:tc:SAML:2.0:status:TooManyResponses";
             public const string UnknownAttrProfile = "urn:oasis:names:tc:SAML:2.0:status:UnknownAttrProfile";
             public const string UnknownPrincipal = "urn:oasis:names:tc:SAML:2.0:status:UnknownPrincipal";
             public const string UnsupportedBinding = "urn:oasis:names:tc:SAML:2.0:status:UnsupportedBinding";
@@ -57,14 +57,22 @@ namespace Saml2Core
         {
             public const string Protocol = "urn:oasis:names:tc:SAML:2.0:protocol";
             public const string DsNamespace = "http://www.w3.org/2000/09/xmldsig#";
+            public const string Assertion = "urn:oasis:names:tc:SAML:2.0:assertion";
+        }
+        public static class Elements
+        {
+            public const string Issuer = "Issuer";
         }
         public static class Parameters
         {
             public const string SamlRequest = "SAMLRequest";
+            public const string SamlArt = "SAMLart";
             public const string RelayState = "RelayState";
             public const string SigAlg = "SigAlg";
             public const string Signature = "Signature";
             public const string SamlResponse = "SAMLResponse";
+            public const string ArtifactResponse = "ArtifactResponse";
+            public const string ArtifactResolve = "ArtifactResolve";
         }
         public static class NameIDFormats
         {

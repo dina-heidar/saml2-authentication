@@ -12,7 +12,7 @@ public class Create
 {
     public class Command : IRequest<XmlDocument>
     {
-        public SimpleSpMetadata ServiceProviderMetadata { get; set; }
+        public BasicSpMetadata ServiceProviderMetadata { get; set; }
     }
 
     public class CommandValidator : AbstractValidator<Command>

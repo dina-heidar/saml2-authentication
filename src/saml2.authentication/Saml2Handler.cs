@@ -68,21 +68,28 @@ namespace Saml2Core
             _saml2Service = saml2Service;
         }
         protected override async Task<HandleRequestResult> HandleRemoteAuthenticateAsync()
-
         {
             Saml2Message saml2Message = null;
             AuthenticationProperties properties = null;
 
+            if (HttpMethods.IsGet(Request.Method))
+            {
+                var query = Request.Query;
+                // ToArray handles the StringValues.IsNullOrEmpty case.
+                // We assume non-empty Value does not contain null elements.
+#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+                saml2Message = new Saml2Message(query.Select(pair => new KeyValuePair<string, string[]>(pair.Key, pair.Value.ToArray())));
+#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+            }
             // assumption: if the ContentType is "application/x-www-form-urlencoded"
             // it should be safe to read as it is small.
-            if (HttpMethods.IsPost(Request.Method)
+            else if (HttpMethods.IsPost(Request.Method)
               && !string.IsNullOrEmpty(Request.ContentType)
               // May have media/type; charset=utf-8, allow partial match.
               && Request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)
               && Request.Body.CanRead)
             {
                 var form = await Request.ReadFormAsync(Context.RequestAborted);
-
                 // ToArray handles the StringValues.IsNullOrEmpty case.
                 // We assume non-empty Value does not contain null elements.
 #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
@@ -124,39 +131,44 @@ namespace Saml2Core
                     saml2Message.RelayState = userState;
                 }
 
-                var messageReceivedContext = new MessageReceivedContext(Context, Scheme, Options, properties)
-                {
-                    ProtocolMessage = saml2Message
-                };
-                await Events.MessageReceived(messageReceivedContext);
-
-                if (messageReceivedContext.Result != null)
-                {
-                    if (messageReceivedContext.Result.Handled)
-                    {
-                        Logger.MessageReceivedContextHandledResponse();
-                    }
-                    else if (messageReceivedContext.Result.Skipped)
-                    {
-                        Logger.MessageReceivedContextSkipped();
-                    }
-                    return messageReceivedContext.Result;
-                }
-                saml2Message = messageReceivedContext.ProtocolMessage;
-                properties = messageReceivedContext.Properties!; // Provides a new instance if not set.
-
-                // If state did flow from the challenge then validate it. 
-                if (properties.Items.TryGetValue(CorrelationProperty, out string correlationId)
-                    && !ValidateCorrelationId(properties))
-                {
-                    return HandleRequestResult.Fail(Properties.Resources.CorrelationFailure, properties);
-                }
-
-                if (saml2Message.SamlResponse == null)
+                //it is not a saml response or an artifact message
+                if (saml2Message.SamlResponse == null &&
+                    saml2Message.SamlArt == null &&
+                    saml2Message.ArtifactResponse == null)
                 {
                     Logger.SignInWithoutWResult();
                     return HandleRequestResult.Fail(Properties.Resources.SignInMessageSamlResponseIsMissing, properties);
                 }
+
+                //if this was a samlart extract the saml artifact resolve value
+                //and send to Idp artifact resolution service
+                if (!string.IsNullOrEmpty(saml2Message.SamlArt))
+                {
+                    var artifactResolveReceivedContext = await RunSamlArtifactResolveReceivedEventAsync(saml2Message, properties!);
+                    if (artifactResolveReceivedContext.Result != null)
+                    {
+                        return artifactResolveReceivedContext.Result;
+                    }
+
+                    saml2Message = artifactResolveReceivedContext.ProtocolMessage;                   
+                    properties = artifactResolveReceivedContext.Properties!;
+
+                    var artifactResolutionRequest = artifactResolveReceivedContext.ArtifactResolutionRequest;
+
+
+                    var t = await RedeemFromArtifactResolAsync(saml2Message);
+
+                    // If the developer redeemed the code themselves...
+                    //artifactResolutionResponse = artifactReceivedContext.ArtifactResolutionResponse;
+                   
+
+                    //if (artifactReceivedContext.HandledArtifactResolveRedemption)
+                    //{
+                    //    artifactResolutionResponse = await RedeemFromArtifactResolAsync(artifactResolutionRequest!);
+                    //}                   
+                }
+
+
 
                 //since this is a solicited login (sent from challenge)
                 // we must compare the incoming 'InResponseTo' what we have in the cookie
@@ -166,7 +178,7 @@ namespace Saml2Core
                 //read saml response and vaidate signature if needed
                 var responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, Options);
 
-                //validate it is not a replay attack
+                //validate it is not a replay attack by comparing inResponseTo values
                 saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
 
                 //cleanup and remove existing saml cookies
@@ -329,7 +341,7 @@ namespace Saml2Core
         /// </returns>
         protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
         {
-            Logger.EnteringOpenIdAuthenticationHandlerHandleUnauthorizedAsync(GetType().FullName!);
+            Logger.EnteringSaml2AuthenticationHandlerHandleUnauthorizedAsync(GetType().FullName!);
 
             // order for local RedirectUri
             // 1. challenge.Properties.RedirectUri
@@ -348,7 +360,7 @@ namespace Saml2Core
                 Options.Configuration = _configuration;
             }
 
-            if (Options.AssertionConsumerServiceUrl == null)
+            if (Options.AssertionConsumerServiceUrl == null && Options.AssertionConsumerServiceIndex == null)
             {
                 Options.AssertionConsumerServiceUrl = new Uri(new Uri(CurrentUri), Options.CallbackPath);
             }
@@ -406,7 +418,7 @@ namespace Saml2Core
                 Response.Headers.Add("Pragma", "no-cache");
                 Response.Headers.Add("Expires", "Thu, 01 Jan 1970 00:00:00 GMT");
 
-                await Response.Body.WriteAsync(buffer, 0, buffer.Length);
+                await Response.WriteAsync(content);
             }
         }
 
@@ -507,6 +519,93 @@ namespace Saml2Core
             Response.Redirect(redirectUrl, true);
             return true;
         }
+
+        protected virtual async Task<Saml2Message> RedeemFromArtifactResolAsync(Saml2Message saml2Message)
+        {
+            Logger.RedeemingArtifactForAssertion();
+           
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post,
+                Saml2Message.GetIdpDescriptor(Options.Configuration).ArtifactResolutionServices
+                .FirstOrDefault(x => x.Index == Options.ArtifactResolutionServiceIndex).Location);
+
+            //AuthnRequest ID value which needs to be included in the AuthnRequest
+            //we will need this to create the same session cookie as well
+            var authnRequestId2 = Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
+
+            var artifactResolveRequest = new Saml2Message().CreateArtifactResolutionRequest(Options, authnRequestId2, saml2Message.SamlArt);
+
+            requestMessage.Headers.Add("SOAPAction", "");
+            requestMessage.Content = new StringContent(artifactResolveRequest, Encoding.UTF8, "text/xml");
+            requestMessage.Version = new Version(2, 0);// Backchannel.Version; // DefaultRequestVersion;
+
+            //send soap message
+            var responseMessage = await Backchannel.SendAsync(requestMessage, Context.RequestAborted);
+
+           
+
+            var contentMediaType = responseMessage.Content.Headers.ContentType?.MediaType;
+            if (string.IsNullOrEmpty(contentMediaType))
+            {
+                Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type header is missing.");
+            }
+            else if (!string.Equals(contentMediaType, "application/json", StringComparison.OrdinalIgnoreCase))
+            {
+                Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type {responseMessage.Content.Headers.ContentType}.");
+            }
+
+            
+            try
+            {
+                var responseContent = await responseMessage.Content.ReadAsStringAsync();
+                saml2Message.ArtifactResponse = responseContent;
+            }
+            catch (Exception ex)
+            {
+                throw new Saml2Exception($"Failed to parse token response body as JSON. Status Code: {(int)responseMessage.StatusCode}. Content-Type: {responseMessage.Content.Headers.ContentType}", ex);
+            }
+
+            if (!responseMessage.IsSuccessStatusCode)
+            {
+                throw new Saml2Exception(responseMessage.ReasonPhrase);
+            }
+
+            return saml2Message;
+        }
+
+        #region Private
+
+        private async Task<ArtifactResolveReceivedContext> RunSamlArtifactResolveReceivedEventAsync(Saml2Message saml2Message, 
+            AuthenticationProperties properties)
+        {
+            Logger.ArtifactResolveReceived();
+
+            var saml2message = new Saml2Message()
+            {
+                SamlArt = saml2Message.SamlArt,
+            };
+           
+            var context = new ArtifactResolveReceivedContext(Context, Scheme, Options, properties)
+            {
+                ProtocolMessage = saml2Message,              
+                Backchannel = Backchannel
+            };
+
+            await Events.ArtifactResolveReceived(context);
+            if (context.Result != null)
+            {
+                if (context.Result.Handled)
+                {
+                    Logger.ArtifactResolveReceivedContextHandledResponse();
+                }
+                else if (context.Result.Skipped)
+                {
+                    Logger.ArtifactResolveReceivedContextSkipped();
+                }
+            }
+
+            return context;
+        }
+        #endregion
     }
 }
 

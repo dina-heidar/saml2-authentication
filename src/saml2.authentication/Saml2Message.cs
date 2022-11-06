@@ -101,9 +101,10 @@ namespace Saml2Core
                     AllowCreateSpecified = true
                 },
                 Destination = issuer,
-                AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex,
-                AssertionConsumerServiceURL = options.AssertionConsumerServiceUrl.AbsoluteUri,
-                ProtocolBinding = GetProtocolBinding(options.ResponseProtocolBinding),
+                AssertionConsumerServiceIndex = (options.AssertionConsumerServiceIndex != null ? options.AssertionConsumerServiceIndex.Value : (ushort)0),
+                AssertionConsumerServiceIndexSpecified = options.AssertionConsumerServiceIndex.HasValue,
+                AssertionConsumerServiceURL = options.AssertionConsumerServiceUrl?.AbsoluteUri,
+                ProtocolBinding = (options.ResponseProtocolBinding != null ? GetProtocolBinding((Saml2ResponseProtocolBinding)options.ResponseProtocolBinding) : null),
                 IssueInstant = DateTime.UtcNow,
             };
 
@@ -115,21 +116,26 @@ namespace Saml2Core
                 IssuerAddress = issuer
             };
 
-
-            //authentication request
-            //saml2Message.SamlRequest = authnRequestXmlDoc.OuterXml;           
+            if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact)
+            {               
+                if (idpConfiguration.ArtifactResolutionServices.Count() == 0)
+                {
+                    throw new Saml2Exception("The identity provider does not support 'HTTP-Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.");
+                }
+            }
 
             //if post method and needs signature then we need to ign the xml itself 
             if (options.AuthenticationMethod == Saml2AuthenticationBehaviour.FormPost)
             {
                 if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
                 {
-                    var signedAuthnRequestXmlDoc = authnRequestXmlDoc.AddXmlSignature(options.SigningCertificate);
-                    saml2Message.SamlRequest = (signedAuthnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
-                    //saml2Message.RelayState = relayState.DeflateEncode();//.UrlEncode();
+                    var signedAuthnRequestXmlDoc = authnRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
+                        Namespaces.Assertion, $"#{authnRequestId}");
+
+                    saml2Message.SamlRequest = System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedAuthnRequestXmlDoc.OuterXml));
+                    saml2Message.RelayState = relayState.DeflateEncode();//.UrlEncode();
                 }
-                var t = saml2Message.BuildFormPost();
-                return t;
+                return saml2Message.BuildFormPost();
             }
             else
             {
@@ -153,6 +159,52 @@ namespace Saml2Core
                 return saml2Message.BuildRedirectUrl();
             }
         }
+
+        public string CreateArtifactResolutionRequest(Saml2Options options, string authnRequestId2, string artifact)
+        {
+            var idpConfiguration = GetIdpDescriptor(options.Configuration);
+            var idpSingleServiceArtifactEndpoints = idpConfiguration.ArtifactResolutionServices;
+            var issuer = GetSignOnEndpoint(idpSingleServiceArtifactEndpoints, options.AuthenticationMethod);
+
+            var artifactResolveRequest = new ArtifactResolveType
+            {
+                ID = authnRequestId2,
+                Issuer = new NameIDType()
+                {
+                    Value = options.EntityId
+                },
+                Version = Saml2Constants.Version,
+                Artifact = artifact,
+                Destination = issuer,
+                IssueInstant = DateTime.UtcNow       
+            };
+
+            var artifactResolveRequestXmlDoc = Serialize<ArtifactResolveType>(artifactResolveRequest);
+
+            var saml2Message = new Saml2Message()
+            {
+                IssuerAddress = issuer
+            };
+
+            if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact)
+            {
+                if (idpConfiguration.ArtifactResolutionServices.Count() == 0)
+                {
+                    throw new Saml2Exception("The identity provider does not support 'Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.");
+                }
+            }
+
+            //artifact resolution MUST be signed
+            if (options.SigningCertificate == null)
+            {
+                throw new Saml2Exception("Signature Certificate cannot be null when using HTTP-Artifact binding");
+            }
+                var signedAuthnRequestXmlDoc = artifactResolveRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
+                    Namespaces.Assertion, $"#{authnRequestId2}");
+
+                saml2Message.ArtifactResolve = System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedAuthnRequestXmlDoc.OuterXml));
+            return saml2Message.ArtifactResolve;
+        } 
         public virtual string GetToken(ResponseType responseType, X509Certificate2 encryptingCertificate2 = null)
         {
             if (encryptingCertificate2 != null)
@@ -253,6 +305,33 @@ namespace Saml2Core
             var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseString);
             return samlResponseType;
         }
+        public ArtifactResponseType GetArtifactResponseToken(string base64EncodedSamlResponse, Saml2Options options)
+        {
+            var doc = new XmlDocument
+            {
+                XmlResolver = null,
+                PreserveWhitespace = true
+            };
+
+            if (base64EncodedSamlResponse.Contains("%"))
+            {
+                base64EncodedSamlResponse = HttpUtility.UrlDecode(base64EncodedSamlResponse);
+            }
+
+            byte[] bytes = Convert.FromBase64String(base64EncodedSamlResponse);
+            string artifactResponseString = Encoding.UTF8.GetString(bytes);
+            doc.LoadXml(artifactResponseString);
+
+            if (options.RequireMessageSigned)
+            {
+                if (!ValidateXmlSignature(doc, options.VerifySignatureOnly, options.Configuration))
+                {
+                    throw new Saml2Exception("Artifact Response signature is not valid.");
+                }
+            }
+            var artifactResponseType= DeSerializeToClass<ArtifactResponseType>(artifactResponseString);
+            return artifactResponseType;
+        }
         public void CheckIfReplayAttack(string inResponseTo, string inResponseToCookieValue)
         {
             string originalSamlRequestId = inResponseToCookieValue.Base64Decode();
@@ -278,7 +357,7 @@ namespace Saml2Core
         }
         public bool IsSignInMessage
         {
-            get => SamlResponse != null;
+            get => SamlResponse != null || SamlArt != null || ArtifactResponse != null;
         }
         public string SamlRequest
         {
@@ -300,10 +379,25 @@ namespace Saml2Core
             get { return GetParameter(Saml2Constants.Parameters.Signature); }
             set { SetParameter(Saml2Constants.Parameters.Signature, value); }
         }
+        public string SamlArt
+        {
+            get { return GetParameter(Saml2Constants.Parameters.SamlArt); }
+            set { SetParameter(Saml2Constants.Parameters.SamlArt, value); }
+        }
         public string SamlResponse
         {
             get { return GetParameter(Saml2Constants.Parameters.SamlResponse); }
             set { SetParameter(Saml2Constants.Parameters.SamlResponse, EncodeDeflateMessage(value)); }
+        }
+        public string ArtifactResolve
+        {
+            get { return GetParameter(Saml2Constants.Parameters.ArtifactResolve); }
+            set { SetParameter(Saml2Constants.Parameters.ArtifactResolve, EncodeDeflateMessage(value)); }
+        }
+        public string ArtifactResponse
+        {
+            get { return GetParameter(Saml2Constants.Parameters.ArtifactResponse); }
+            set { SetParameter(Saml2Constants.Parameters.ArtifactResponse, EncodeDeflateMessage(value)); }
         }
         public virtual string BuildRedirectUrl()
         {
@@ -331,34 +425,21 @@ namespace Saml2Core
             }
             return strBuilder.ToString();
         }
-
         public virtual string BuildFormPost()
         {
             var _issuerAddress = this.IssuerAddress;
 
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.Append("<html><head><title>");
-            stringBuilder.Append(WebUtility.HtmlEncode(PostTitle));
-            stringBuilder.Append("</title></head><body><form method=\"POST\" name=\"hiddenform\" action=\"");
-            stringBuilder.Append(WebUtility.HtmlEncode(_issuerAddress));
-            stringBuilder.Append("\">");
+            stringBuilder.Append("<?xml version =\"1.0\" encoding =\"utf-8\"?>\r\n <!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\r\n\r\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\">\r\n<head>\r\n <title>SAML2Core</title>\r\n </head>\r\n <body onload=\"document.forms[0].submit()\">\r\n <noscript><prop><strong>Note:</strong> Since your browser does not support JavaScript, you must press the Continue button once to proceed.</prop></noscript>\r\n");
+            stringBuilder.AppendFormat("<html><head><body><form method='post' name='hiddenform' action='{0}'><div>", _issuerAddress);
+
             foreach (KeyValuePair<string, string> parameter in this.Parameters)
             {
-                stringBuilder.Append("<input type=\"hidden\" name=\"");
-                stringBuilder.Append(WebUtility.HtmlEncode(parameter.Key));
-                stringBuilder.Append("\" value=\"");
-                stringBuilder.Append(WebUtility.HtmlEncode(parameter.Value));
-                stringBuilder.Append("\" />");
+                stringBuilder.AppendFormat("<input type='hidden' id='{0}' name='{0}' value='{1}' />", parameter.Key, parameter.Value);
             }
-
-            stringBuilder.Append("<noscript><p>");
-            stringBuilder.Append(WebUtility.HtmlEncode(ScriptDisabledText));
-            stringBuilder.Append("</p><input type=\"submit\" value=\"");
-            stringBuilder.Append(WebUtility.HtmlEncode(ScriptButtonText));
-            stringBuilder.Append("\" /></noscript>");
-            stringBuilder.Append("</form>");
+            stringBuilder.Append("<noscript><div><input type =\"submit\" value =\"Continue\"/></div ></noscript>");
+            stringBuilder.Append("</div></form></body></html>");
             stringBuilder.Append(Script);
-            stringBuilder.Append("</body></html>");
             return stringBuilder.ToString();
         }
         public static IDPSSODescriptor GetIdpDescriptor(EntityDescriptor configuration)

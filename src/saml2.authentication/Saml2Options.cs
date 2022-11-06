@@ -31,7 +31,6 @@ using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Tokens.Saml2;
 using Saml.MetadataBuilder;
-using Saml.MetadataBuilder.Constants;
 using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
@@ -52,22 +51,19 @@ namespace Saml2Core
 
             //paths
             SignOutPath = new PathString("/saml2-signout");
-            ArtifactResolutionPath = new PathString("/saml2-artifact");
             SignedOutRedirectUri = "/";
             CallbackPath = new PathString("/saml2-signin");
             DefaultRedirectUrl = new PathString("/");
 
             //saml request
             RequireHttpsMetadata = true;
-            RequestedAuthnContext = RequestedAuthnContextTypes.FormsAuthentication();
-            ForceAuthn = true;
+            ForceAuthn = false;
             NameIdPolicy = new NameIdPolicy
             {
                 Format = NameIDFormats.Persistent,
-                SpNameQualifier =null
+                SpNameQualifier = null
             };
-            IsPassive = false;
-            AssertionConsumerServiceIndex = 0;
+            IsPassive = false;            
             AuthenticationMethod = Saml2AuthenticationBehaviour.RedirectGet;
             ResponseProtocolBinding = Saml2ResponseProtocolBinding.FormPost;
             SigningCertificateHashAlgorithmName = HashAlgorithmName.SHA256;
@@ -91,8 +87,6 @@ namespace Saml2Core
             //logoutSendMethod => redirect(get),post, artifact, soap ==> front-channel OR back-channel       
             //logoutMethodResponseBinding => redirect(get),post, artifact, soap
 
-
-
             //events
             Events = new Saml2Events();
 
@@ -107,7 +101,7 @@ namespace Saml2Core
 
             Saml2CoreCookie = new CookieBuilder()
             {
-                Name = Saml2CoreCookieName,               
+                Name = Saml2CoreCookieName,
                 IsEssential = CookieConsentNeeded,
                 HttpOnly = true,
                 SameSite = SameSiteMode.None,
@@ -119,24 +113,30 @@ namespace Saml2Core
         }
 
         /// <summary>
-        /// Gets or sets the artifact resolution path.
+        /// Gets or sets the index of the Idp artifact resolution service.
         /// </summary>
         /// <value>
-        /// The artifact resolution path.
-        /// The value of the artifact resolution path
-        /// must be registered with the identity provider.
+        /// The index of the artifact resolution service.
+        /// The default value is '0'.
         /// </value>
-        public PathString ArtifactResolutionPath { get; set; }
+        public ushort ArtifactResolutionServiceIndex { get; set; }
         /// <summary>
         /// Gets or sets the index of the assertion consumer service.
+        /// If this is populated, it will override the Callback, 
+        /// AssertionConsumerServiceUrl and the ResponseProtocolBinding
+        /// values. Only the 'AssertionConsumerServiceIndex' will be sent 
+        /// for the AuthnRequest.
         /// </summary>
         /// <value>
         /// The index of the assertion consumer service.
         /// </value>
-        public ushort AssertionConsumerServiceIndex { get; set; }
+        public ushort? AssertionConsumerServiceIndex { get; set; }
         /// <summary>
         /// Gets or sets the assertion consumer service URL.
-        /// This will override the CallBack value.
+        /// This will override the CallBack value.        
+        /// If the 'AssertionConsumerServiceIndex' is populated, the Callback, 
+        /// AssertionConsumerServiceUrl and the ResponseProtocolBinding
+        /// values will not be sent within the AuthnRequest.
         /// </summary>
         /// <value>
         /// The assertion consumer service URL.
@@ -346,7 +346,7 @@ namespace Saml2Core
         /// <value>
         /// The default value is 'HTTP-POST'
         /// </value>
-        public Saml2ResponseProtocolBinding ResponseProtocolBinding { get; set; }        
+        public Saml2ResponseProtocolBinding? ResponseProtocolBinding { get; set; }
         /// <summary>
         /// Gets or sets the name of the saml2 core cookie.
         /// </summary>
@@ -387,7 +387,7 @@ namespace Saml2Core
         /// <value>
         /// The signing certificate.
         /// </value>
-        public X509Certificate2 SigningCertificate { get; set; }        
+        public X509Certificate2 SigningCertificate { get; set; }
         /// <summary>
         /// Gets or sets the name of the signing certificate hash algorithm.
         /// </summary>
@@ -430,7 +430,7 @@ namespace Saml2Core
 
 
         #region TODO
-        
+
         /// <summary>
         /// Gets or sets the sign out query string. 
         /// If set, prepends this value to your Idp logout service url. Used by AD FS to supply ?wa=wsignout1.0.

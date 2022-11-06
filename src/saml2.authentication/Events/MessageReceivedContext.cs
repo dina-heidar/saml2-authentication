@@ -20,23 +20,30 @@
 // SOFTWARE.
 //
 
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
+
 namespace Saml2Core
 {
-    public class Saml2Defaults
+    public class MessageReceivedContext : RemoteAuthenticationContext<Saml2Options>
     {
         /// <summary>
-        /// The authentication scheme
+        /// Creates a new context object.
         /// </summary>
-        public const string AuthenticationScheme = "Saml2";
+        /// <param name="context"></param>
+        /// <param name="scheme"></param>
+        /// <param name="options"></param>
+        /// <param name="properties"></param>
+        public MessageReceivedContext(
+            HttpContext context,
+            AuthenticationScheme scheme,
+            Saml2Options options,
+            AuthenticationProperties? properties)
+            : base(context, scheme, options, properties) { }
+
         /// <summary>
-        /// The display name
+        /// The <see cref="Saml2Message"/> received on this request.
         /// </summary>
-        public const string DisplayName = "Saml2";        
-        /// <summary>
-        /// Constant used to identify userstate inside AuthenticationProperties 
-        /// that have been serialized in the 'state' parameter.
-        /// </summary>
-        public static readonly string UserstatePropertiesKey = "Saml2.Userstate";
+        public Saml2Message ProtocolMessage { get; set; } = default!;
     }
 }
-

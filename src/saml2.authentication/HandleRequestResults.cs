@@ -20,23 +20,13 @@
 // SOFTWARE.
 //
 
+using Microsoft.AspNetCore.Authentication;
+
 namespace Saml2Core
 {
-    public class Saml2Defaults
-    {
-        /// <summary>
-        /// The authentication scheme
-        /// </summary>
-        public const string AuthenticationScheme = "Saml2";
-        /// <summary>
-        /// The display name
-        /// </summary>
-        public const string DisplayName = "Saml2";        
-        /// <summary>
-        /// Constant used to identify userstate inside AuthenticationProperties 
-        /// that have been serialized in the 'state' parameter.
-        /// </summary>
-        public static readonly string UserstatePropertiesKey = "Saml2.Userstate";
+    internal static class HandleRequestResults
+    {      
+        internal static HandleRequestResult NoMessage = HandleRequestResult.Fail("No message.");
+        internal static HandleRequestResult UnsolicitedLoginsNotAllowed = HandleRequestResult.Fail("Unsolicited logins are not allowed.");
     }
 }
-

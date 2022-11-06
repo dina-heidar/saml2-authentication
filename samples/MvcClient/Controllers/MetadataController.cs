@@ -23,7 +23,7 @@ namespace MvcClient.Controllers
         public async Task<IActionResult> Create()
         {
             // var spCertificate = ; 
-            var sp = new SimpleSpMetadata
+            var sp = new BasicSpMetadata
             {
                 EncryptingCertificate = new EncryptingCertificate
                 {

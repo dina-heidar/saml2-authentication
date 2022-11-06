@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -95,6 +96,12 @@ namespace Saml2Core
                 options.StateDataFormat = new PropertiesDataFormat(dataProtector);
             }
 
+            if (options.AssertionConsumerServiceIndex != null)
+            {
+                options.AssertionConsumerServiceUrl = null;
+                options.ResponseProtocolBinding = null;
+            }
+
             if (options.StringDataFormat == null)
             {
                 var dataProtector = options.DataProtectionProvider.CreateProtector(
@@ -156,6 +163,11 @@ namespace Saml2Core
                         options.ConfigurationManager = new ConfigurationManager<EntityDescriptor>(options.MetadataAddress,
                             new MetadataReader(_mapper), _idoc);
                     }
+
+                    if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact && options.SigningCertificate == null)
+                    {
+                        throw new Saml2Exception("Signing certifactes are required when using 'HTTP-Artifact' binding protocol");
+                    }                   
                 }
             }
         }
