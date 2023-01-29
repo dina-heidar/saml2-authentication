@@ -166,8 +166,7 @@ namespace Saml2Core
             var idpConfiguration = GetIdpDescriptor(options.Configuration);
             var idpSingleServiceArtifactEndpoints = idpConfiguration.ArtifactResolutionServices;
             var issuer = idpSingleServiceArtifactEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_SOAP).Location;
-            // GetSignOnEndpoint(idpSingleServiceArtifactEndpoints, options.AuthenticationMethod);
-
+           
             var artifactResolveRequest = new ArtifactResolveType
             {
                 ID = authnRequestId2,
@@ -218,10 +217,8 @@ namespace Saml2Core
 
             var envelopeXmlDoc = Serialize(artifactResolveSoapMessageRequest);
 
-            saml2Message.ArtifactResolve = envelopeXmlDoc.OuterXml;//System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedAuthnRequestXmlDoc.OuterXml));
-            //saml2Message.ArtifactResolve = envelopeXmlDoc.InnerXml;
+            saml2Message.ArtifactResolve = envelopeXmlDoc.OuterXml;
             return saml2Message.ArtifactResolve;
-            //return envelopeXmlDoc.InnerXml;
         }
         public virtual string GetToken(ResponseType responseType, X509Certificate2 encryptingCertificate2 = null)
         {
@@ -349,25 +346,6 @@ namespace Saml2Core
             }
             var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseElement.OuterXml);
             return samlResponseType;
-
-            //if (samlArtifactResponse.Contains("%"))
-            //{
-            //    samlArtifactResponse = HttpUtility.UrlDecode(samlArtifactResponse);
-            //}
-
-            //byte[] bytes = Convert.FromBase64String(samlArtifactResponse);
-            //string artifactResponseString = Encoding.UTF8.GetString(bytes);
-            //doc.LoadXml(artifactResponseString);
-
-            //if (options.RequireMessageSigned)
-            //{
-            //    if (!ValidateXmlSignature(doc, options.VerifySignatureOnly, options.Configuration))
-            //    {
-            //        throw new Saml2Exception("Artifact Response signature is not valid.");
-            //    }
-            //}
-            //var artifactResponseType = DeSerializeToClass<ArtifactResponseType>(artifactResponseString);
-            //return artifactResponseType;
         }
         public void CheckIfReplayAttack(string inResponseTo, string inResponseToCookieValue)
         {

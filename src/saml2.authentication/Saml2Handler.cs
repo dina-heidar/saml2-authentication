@@ -238,7 +238,8 @@ namespace Saml2Core
                 tvp.ValidIssuers = (tvp.ValidIssuers == null ? issuers : tvp.ValidIssuers.Concat(issuers));
                 tvp.IssuerSigningKeys = (tvp.IssuerSigningKeys == null ? idpSigningKeys : tvp.IssuerSigningKeys.Concat(idpSigningKeys));
 
-                if (!Options.WantAssertionsSigned) // in case they aren't signed
+                //in case they aren't signed
+                if (!Options.WantAssertionsSigned) 
                 {
                     tvp.RequireSignedTokens = false;
                 }
@@ -272,6 +273,7 @@ namespace Saml2Core
                 ClaimsIdentity identity = new ClaimsIdentity(principal.Claims, Scheme.Name);
 
                 session.SessionIndex = !String.IsNullOrEmpty(session.SessionIndex) ? session.SessionIndex : assertion.ID;
+
                 //get the session index from assertion so you can use it to logout later
                 identity.AddClaim(new Claim(Saml2ClaimTypes.SessionIndex, session.SessionIndex));
                 if (principal.Claims.Any(c => c.Type == ClaimTypes.NameIdentifier))
@@ -530,7 +532,7 @@ namespace Saml2Core
 
             var artifactResolveRequest = new Saml2Message().CreateArtifactResolutionRequest(Options, authnRequestId2, saml2Message.SamlArt);
 
-            //requestMessage.Headers.Add("SOAPAction", "");
+            requestMessage.Headers.Add("SOAPAction", "");
             requestMessage.Content = new StringContent(artifactResolveRequest, Encoding.UTF8, "text/xml");
             requestMessage.Version = new Version(2, 0);
 
