@@ -19,7 +19,7 @@ public class Program
         var environment = builder.Environment;
 
         // Add services to the container.
-        builder.Services.AddControllersWithViews();      
+        builder.Services.AddControllersWithViews();
 
         builder.Services.AddAuthentication(sharedOptions =>
         {
@@ -55,7 +55,7 @@ public class Program
             else
             {
                 //if you want to search in cert store -can be used for production
-                options.SigningCertificate = options.EncryptingCertificate = 
+                options.SigningCertificate = options.EncryptingCertificate =
                 new Cryptography.X509Certificates.Extension.X509Certificate2(
                     "[Serial number of certificate]",
                     StoreName.My,

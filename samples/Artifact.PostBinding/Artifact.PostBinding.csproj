@@ -18,4 +18,12 @@
     <ProjectReference Include="..\..\src\saml2.authentication\saml2.authentication.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EditorConfigFiles Remove="C:\Users\dinah\source\repos\Saml2\samples\Artifact.PostBinding\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="C:\Users\dinah\source\repos\Saml2\samples\Artifact.PostBinding\.editorconfig" />
+  </ItemGroup>
+
 </Project>

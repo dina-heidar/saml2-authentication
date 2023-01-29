@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -10,11 +10,11 @@ namespace Artifact.PostBinding.Controllers;
 [Authorize]
 public class AccountController : Controller
 {
-    private readonly ILogger<AccountController> _logger;
+    private readonly ILogger<AccountController> logger;
 
     public AccountController(ILogger<AccountController> logger)
     {
-        _logger = logger;
+        this.logger = logger;
     }
 
     [HttpPost]
