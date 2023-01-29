@@ -29,6 +29,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Text;
+using System.Threading.Tasks;
 using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
@@ -117,7 +118,7 @@ namespace Saml2Core
             };
 
             if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact)
-            {               
+            {
                 if (idpConfiguration.ArtifactResolutionServices.Count() == 0)
                 {
                     throw new Saml2Exception("The identity provider does not support 'HTTP-Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.");
@@ -164,7 +165,8 @@ namespace Saml2Core
         {
             var idpConfiguration = GetIdpDescriptor(options.Configuration);
             var idpSingleServiceArtifactEndpoints = idpConfiguration.ArtifactResolutionServices;
-            var issuer = GetSignOnEndpoint(idpSingleServiceArtifactEndpoints, options.AuthenticationMethod);
+            var issuer = idpSingleServiceArtifactEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_SOAP).Location;
+            // GetSignOnEndpoint(idpSingleServiceArtifactEndpoints, options.AuthenticationMethod);
 
             var artifactResolveRequest = new ArtifactResolveType
             {
@@ -176,7 +178,7 @@ namespace Saml2Core
                 Version = Saml2Constants.Version,
                 Artifact = artifact,
                 Destination = issuer,
-                IssueInstant = DateTime.UtcNow       
+                IssueInstant = DateTime.UtcNow
             };
 
             var artifactResolveRequestXmlDoc = Serialize<ArtifactResolveType>(artifactResolveRequest);
@@ -199,12 +201,28 @@ namespace Saml2Core
             {
                 throw new Saml2Exception("Signature Certificate cannot be null when using HTTP-Artifact binding");
             }
-                var signedAuthnRequestXmlDoc = artifactResolveRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
-                    Namespaces.Assertion, $"#{authnRequestId2}");
+            var signedAuthnRequestXmlDoc = artifactResolveRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
+                Namespaces.Assertion, $"#{authnRequestId2}");
 
-                saml2Message.ArtifactResolve = System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedAuthnRequestXmlDoc.OuterXml));
+            //put in SOAP message here
+            var artifactResolveSoapMessageRequest = new Envelope
+            {
+                Body = new Body
+                {
+                    Item = new XmlElement[]
+                    {
+                       SerializeToElement(signedAuthnRequestXmlDoc)
+                   }
+                }
+            };
+
+            var envelopeXmlDoc = Serialize(artifactResolveSoapMessageRequest);
+
+            saml2Message.ArtifactResolve = envelopeXmlDoc.OuterXml;//System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedAuthnRequestXmlDoc.OuterXml));
+            //saml2Message.ArtifactResolve = envelopeXmlDoc.InnerXml;
             return saml2Message.ArtifactResolve;
-        } 
+            //return envelopeXmlDoc.InnerXml;
+        }
         public virtual string GetToken(ResponseType responseType, X509Certificate2 encryptingCertificate2 = null)
         {
             if (encryptingCertificate2 != null)
@@ -305,32 +323,51 @@ namespace Saml2Core
             var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseString);
             return samlResponseType;
         }
-        public ArtifactResponseType GetArtifactResponseToken(string base64EncodedSamlResponse, Saml2Options options)
+        public ResponseType GetArtifactResponseToken(string envelope, Saml2Options options)
         {
+            var reponseEnvelope = DeSerializeToClass<Envelope>(envelope);
+
+            var artifactResponseElement = (XmlElement)reponseEnvelope.Body.Item[0];
+
+            var artifactResponseType = DeSerializeToClass<ArtifactResponseType>(artifactResponseElement.OuterXml);
+            var samlResponseElement = artifactResponseType.Any;
+
             var doc = new XmlDocument
             {
                 XmlResolver = null,
                 PreserveWhitespace = true
             };
 
-            if (base64EncodedSamlResponse.Contains("%"))
-            {
-                base64EncodedSamlResponse = HttpUtility.UrlDecode(base64EncodedSamlResponse);
-            }
-
-            byte[] bytes = Convert.FromBase64String(base64EncodedSamlResponse);
-            string artifactResponseString = Encoding.UTF8.GetString(bytes);
-            doc.LoadXml(artifactResponseString);
+            doc.LoadXml(samlResponseElement.OuterXml);
 
             if (options.RequireMessageSigned)
             {
                 if (!ValidateXmlSignature(doc, options.VerifySignatureOnly, options.Configuration))
                 {
-                    throw new Saml2Exception("Artifact Response signature is not valid.");
+                    throw new Saml2Exception("Response signature is not valid.");
                 }
             }
-            var artifactResponseType= DeSerializeToClass<ArtifactResponseType>(artifactResponseString);
-            return artifactResponseType;
+            var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseElement.OuterXml);
+            return samlResponseType;
+
+            //if (samlArtifactResponse.Contains("%"))
+            //{
+            //    samlArtifactResponse = HttpUtility.UrlDecode(samlArtifactResponse);
+            //}
+
+            //byte[] bytes = Convert.FromBase64String(samlArtifactResponse);
+            //string artifactResponseString = Encoding.UTF8.GetString(bytes);
+            //doc.LoadXml(artifactResponseString);
+
+            //if (options.RequireMessageSigned)
+            //{
+            //    if (!ValidateXmlSignature(doc, options.VerifySignatureOnly, options.Configuration))
+            //    {
+            //        throw new Saml2Exception("Artifact Response signature is not valid.");
+            //    }
+            //}
+            //var artifactResponseType = DeSerializeToClass<ArtifactResponseType>(artifactResponseString);
+            //return artifactResponseType;
         }
         public void CheckIfReplayAttack(string inResponseTo, string inResponseToCookieValue)
         {
@@ -392,12 +429,12 @@ namespace Saml2Core
         public string ArtifactResolve
         {
             get { return GetParameter(Saml2Constants.Parameters.ArtifactResolve); }
-            set { SetParameter(Saml2Constants.Parameters.ArtifactResolve, EncodeDeflateMessage(value)); }
+            set { SetParameter(Saml2Constants.Parameters.ArtifactResolve, value); }
         }
         public string ArtifactResponse
         {
             get { return GetParameter(Saml2Constants.Parameters.ArtifactResponse); }
-            set { SetParameter(Saml2Constants.Parameters.ArtifactResponse, EncodeDeflateMessage(value)); }
+            set { SetParameter(Saml2Constants.Parameters.ArtifactResponse,value); }
         }
         public virtual string BuildRedirectUrl()
         {
@@ -589,6 +626,27 @@ namespace Saml2Core
             var urlEncoded = encoded.UrlEncode();
             return urlEncoded.UpperCaseUrlEncode();
         }
+
+        /// <summary>
+        /// Serializes to element.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="item">The item.</param>
+        /// <returns></returns>
+        private static XmlElement SerializeToElement<T>(T item) where T : class
+        {
+            string xmlTemplate = string.Empty;
+            XmlDocument doc = Serialize<T>(item);
+            XmlElement element = doc.DocumentElement;
+            return element;
+        }
+
+        /// <summary>
+        /// Serializes the specified item.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="item">The item.</param>
+        /// <returns></returns>
         private static XmlDocument Serialize<T>(T item) where T : class
         {
             var xmlTemplate = string.Empty;

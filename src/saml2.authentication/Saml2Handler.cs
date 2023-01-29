@@ -27,6 +27,7 @@ using System.Net.Http;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Threading;
 using System.Threading.Tasks;
 using MetadataBuilder.Schema.Metadata;
 using Microsoft.AspNetCore.Authentication;
@@ -71,6 +72,7 @@ namespace Saml2Core
         {
             Saml2Message saml2Message = null;
             AuthenticationProperties properties = null;
+            ResponseType responseToken;
 
             if (HttpMethods.IsGet(Request.Method))
             {
@@ -140,7 +142,7 @@ namespace Saml2Core
                     return HandleRequestResult.Fail(Properties.Resources.SignInMessageSamlResponseIsMissing, properties);
                 }
 
-                //if this was a samlart extract the saml artifact resolve value
+                //if this was a samlart, then extract the saml artifact resolve value
                 //and send to Idp artifact resolution service
                 if (!string.IsNullOrEmpty(saml2Message.SamlArt))
                 {
@@ -150,33 +152,27 @@ namespace Saml2Core
                         return artifactResolveReceivedContext.Result;
                     }
 
-                    saml2Message = artifactResolveReceivedContext.ProtocolMessage;                   
+                    saml2Message = artifactResolveReceivedContext.ProtocolMessage;
                     properties = artifactResolveReceivedContext.Properties!;
 
                     var artifactResolutionRequest = artifactResolveReceivedContext.ArtifactResolutionRequest;
 
-
-                    var t = await RedeemFromArtifactResolAsync(saml2Message);
-
-                    // If the developer redeemed the code themselves...
-                    //artifactResolutionResponse = artifactReceivedContext.ArtifactResolutionResponse;
-                   
-
-                    //if (artifactReceivedContext.HandledArtifactResolveRedemption)
-                    //{
-                    //    artifactResolutionResponse = await RedeemFromArtifactResolAsync(artifactResolutionRequest!);
-                    //}                   
+                    responseToken = await RedeemFromArtifactResolAsync(saml2Message);
                 }
 
-
+                else
+                {
+                    //read saml response and vaidate signature if needed
+                    responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, Options);
+                }
 
                 //since this is a solicited login (sent from challenge)
                 // we must compare the incoming 'InResponseTo' what we have in the cookie
                 var requestCookies = Request.Cookies;
                 var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CoreCookie.Name))];
 
-                //read saml response and vaidate signature if needed
-                var responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, Options);
+                ////read saml response and vaidate signature if needed
+                //var responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, Options);
 
                 //validate it is not a replay attack by comparing inResponseTo values
                 saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
@@ -520,28 +516,27 @@ namespace Saml2Core
             return true;
         }
 
-        protected virtual async Task<Saml2Message> RedeemFromArtifactResolAsync(Saml2Message saml2Message)
+        protected virtual async Task<ResponseType> RedeemFromArtifactResolAsync(Saml2Message saml2Message)
         {
             Logger.RedeemingArtifactForAssertion();
-           
+
             var requestMessage = new HttpRequestMessage(HttpMethod.Post,
                 Saml2Message.GetIdpDescriptor(Options.Configuration).ArtifactResolutionServices
                 .FirstOrDefault(x => x.Index == Options.ArtifactResolutionServiceIndex).Location);
 
-            //AuthnRequest ID value which needs to be included in the AuthnRequest
+            //artifact ID value which needs to be included in the artifact resolve request
             //we will need this to create the same session cookie as well
-            var authnRequestId2 = Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
+            var authnRequestId2 = UniqueId.CreateRandomId();
 
             var artifactResolveRequest = new Saml2Message().CreateArtifactResolutionRequest(Options, authnRequestId2, saml2Message.SamlArt);
 
-            requestMessage.Headers.Add("SOAPAction", "");
+            //requestMessage.Headers.Add("SOAPAction", "");
             requestMessage.Content = new StringContent(artifactResolveRequest, Encoding.UTF8, "text/xml");
-            requestMessage.Version = new Version(2, 0);// Backchannel.Version; // DefaultRequestVersion;
+            requestMessage.Version = new Version(2, 0);
 
             //send soap message
-            var responseMessage = await Backchannel.SendAsync(requestMessage, Context.RequestAborted);
-
-           
+            //var responseMessage = await Backchannel.SendAsync(requestMessage);
+            var responseMessage = await Backchannel.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, Context.RequestAborted);
 
             var contentMediaType = responseMessage.Content.Headers.ContentType?.MediaType;
             if (string.IsNullOrEmpty(contentMediaType))
@@ -553,7 +548,6 @@ namespace Saml2Core
                 Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type {responseMessage.Content.Headers.ContentType}.");
             }
 
-            
             try
             {
                 var responseContent = await responseMessage.Content.ReadAsStringAsync();
@@ -568,13 +562,12 @@ namespace Saml2Core
             {
                 throw new Saml2Exception(responseMessage.ReasonPhrase);
             }
-
-            return saml2Message;
+            return saml2Message.GetArtifactResponseToken(saml2Message.ArtifactResponse, Options);
         }
 
         #region Private
 
-        private async Task<ArtifactResolveReceivedContext> RunSamlArtifactResolveReceivedEventAsync(Saml2Message saml2Message, 
+        private async Task<ArtifactResolveReceivedContext> RunSamlArtifactResolveReceivedEventAsync(Saml2Message saml2Message,
             AuthenticationProperties properties)
         {
             Logger.ArtifactResolveReceived();
@@ -583,10 +576,11 @@ namespace Saml2Core
             {
                 SamlArt = saml2Message.SamlArt,
             };
-           
+
+
             var context = new ArtifactResolveReceivedContext(Context, Scheme, Options, properties)
             {
-                ProtocolMessage = saml2Message,              
+                ProtocolMessage = saml2Message,
                 Backchannel = Backchannel
             };
 

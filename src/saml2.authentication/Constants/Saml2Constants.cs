@@ -144,6 +144,7 @@ namespace Saml2Core
             public const string HTTP_Redirect = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect";
             public const string HTTP_Post = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
             public const string HTTP_Artifact = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact";
+            public const string HTTP_SOAP = "urn:oasis:names:tc:SAML:2.0:bindings:SOAP";
         }
         public static class Tracing
         {
