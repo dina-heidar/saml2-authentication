@@ -125,7 +125,13 @@ namespace Saml2Core
                 }
             }
 
-            //if post method and needs signature then we need to ign the xml itself 
+            //check if there is a signature certificate
+            if (options.SigningCertificate == null && options.AuthenticationRequestSigned)
+            {
+                throw new Saml2Exception("Missing signing certificate. Either add a signing certitifcatre or change the `AuthenticationRequestSigned` to `false`.");
+            }
+
+            //if post method and needs signature then we need to ign the entire xml
             if (options.AuthenticationMethod == Saml2AuthenticationBehaviour.FormPost)
             {
                 if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
@@ -141,7 +147,7 @@ namespace Saml2Core
             else
             {
                 //redirect binding
-                //if there is a certificate to sign the authnrequest
+                //if there is a certificate to add a query signature parameter to the authnrequest
                 if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
                 {
                     saml2Message.SamlRequest = (authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
@@ -166,7 +172,7 @@ namespace Saml2Core
             var idpConfiguration = GetIdpDescriptor(options.Configuration);
             var idpSingleServiceArtifactEndpoints = idpConfiguration.ArtifactResolutionServices;
             var issuer = idpSingleServiceArtifactEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_SOAP).Location;
-           
+
             var artifactResolveRequest = new ArtifactResolveType
             {
                 ID = authnRequestId2,
@@ -225,6 +231,11 @@ namespace Saml2Core
             if (encryptingCertificate2 != null)
             {
                 var key = (AsymmetricAlgorithm)encryptingCertificate2.GetRSAPrivateKey();
+
+                if (key == null)
+                {
+                    throw new Saml2Exception("Unable to find encrypting certificate RSA private key");
+                }
                 return GetTokenUsingXmlReader(responseType, key);
             }
             return GetTokenUsingXmlReader(responseType);
@@ -244,7 +255,7 @@ namespace Saml2Core
             {
                 if (key == null)
                 {
-                    throw new Saml2Exception("Unable to find encryption certificate RSA private key");
+                    throw new Saml2Exception("Unable to find encrypting certificate");
                 }
 
                 var encryptedElement = (EncryptedElementType)assertion;
@@ -412,7 +423,7 @@ namespace Saml2Core
         public string ArtifactResponse
         {
             get { return GetParameter(Saml2Constants.Parameters.ArtifactResponse); }
-            set { SetParameter(Saml2Constants.Parameters.ArtifactResponse,value); }
+            set { SetParameter(Saml2Constants.Parameters.ArtifactResponse, value); }
         }
         public virtual string BuildRedirectUrl()
         {
@@ -503,6 +514,8 @@ namespace Saml2Core
             var signedCertificate = (X509Certificate2)x509data.Certificates[0];
             var idpCertificates = GetIdpDescriptor(configuration).SigningCertificates;
 
+            //compare the idp metadata signing cert with the token signature
+            //if `verifySignatureOnly` = `false` then it'll do the chain verification to make sure the certificate is valid.
             return signedXml.CheckSignature(GetIdpCertificate(idpCertificates, signedCertificate.SerialNumber),
                 verifySignatureOnly);
         }

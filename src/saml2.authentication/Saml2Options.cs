@@ -413,7 +413,9 @@ namespace Saml2Core
         public bool UseTokenLifetime { get; set; } = true;
         /// <summary>
         /// Gets or sets the bool responsible for signature validation
-        /// true to verify the signature only; false to verify both the signature and certificate.
+        /// true to verify the signature only; 
+        /// false to verify both the signature and 
+        /// certificate (it'll do the chain verification to make sure the certificate is valid).
         /// The default value is set to "true".
         /// </summary>
         /// <value>

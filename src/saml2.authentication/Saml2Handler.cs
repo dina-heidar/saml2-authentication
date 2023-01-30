@@ -171,9 +171,6 @@ namespace Saml2Core
                 var requestCookies = Request.Cookies;
                 var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CoreCookie.Name))];
 
-                ////read saml response and vaidate signature if needed
-                //var responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, Options);
-
                 //validate it is not a replay attack by comparing inResponseTo values
                 saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
 
@@ -236,7 +233,8 @@ namespace Saml2Core
                 tvp.ValidateIssuer = true;
                 tvp.ValidateAudience = true;
                 tvp.ValidIssuers = (tvp.ValidIssuers == null ? issuers : tvp.ValidIssuers.Concat(issuers));
-                tvp.IssuerSigningKeys = (tvp.IssuerSigningKeys == null ? idpSigningKeys : tvp.IssuerSigningKeys.Concat(idpSigningKeys));
+                tvp.IssuerSigningKeys = (tvp.IssuerSigningKeys == null ? idpSigningKeys 
+                    : tvp.IssuerSigningKeys.Concat(idpSigningKeys));
 
                 //in case they aren't signed
                 if (!Options.WantAssertionsSigned) 

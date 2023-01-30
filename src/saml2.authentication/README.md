@@ -4,6 +4,7 @@
 
 SAML2Core Authenticator
 
+
 <details><summary>About</summary>
 <p>
 
@@ -19,12 +20,19 @@ This tool implements the following SAML profiles, message flows and bindings:
     </thead>
     <tbody> 
         <tr>
-            <td rowspan="3">Web SSO</td>
+            <td rowspan="5">Web SSO</td>
             <td rowspan="3"><code>&lt;AuthnRequest&gt;</code> from SP to IdP</td>
             <td>HTTP Redirect</td>            
         </tr>
         <tr>
             <td>HTTP POST</td>
+        </tr>
+        <tr>
+            <td>HTTP Artifact</td>
+        </tr>
+        <tr>            
+            <td rowspan="2">IdP <code>&lt;Response&gt;</code> to SP</td>
+            <td>HTTP POST</td>            
         </tr>
         <tr>
             <td>HTTP Artifact</td>
