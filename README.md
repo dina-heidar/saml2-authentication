@@ -9,6 +9,8 @@ authRequest
 -providername
 -signaturetype
 
+saml logout bindings https://www.oasis-open.org/committees/download.php/35387/sstc-saml-bindings-errata-2.0-wd-05-diff.pdf
+
 http://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0.html
 http://docs.oasis-open.org/security/saml/v2.0/saml-conformance-2.0-os.pdf
 
@@ -16,16 +18,15 @@ https://www.oasis-open.org/committees/download.php/35711/sstc-saml-core-errata-2
 
 - found fun facts:
 1. Authn requests either can have the assertionURl And protocol binding request OR just assertionConsumerIndex
-2. ECDSA certificates are only for encryption
-
-
+2. ECDSA certificates are only for signing not encryptian
 
 ## Todo
 OpenTelemtry
-SamlCookieName
-ReqAuthn type as forms or windows
+ability to sign authnRequest with ecdsa ???
+~~SamlCookieName~~
+~~ReqAuthn type as forms or windows~~
 Dynamic provider set up
-artifcate binding
+~~artifcate binding~~
 Idp initiated logout
 Idp initiated login "UnsolicitedLogins" set timout https://www.scottbrady91.com/saml/dangers-of-idp-initiated-sso
 cake build?

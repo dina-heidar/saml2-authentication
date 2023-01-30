@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>Artifact.PostBinding</RootNamespace>
+    <RootNamespace>Artifact.RedirectBinding</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <UserSecretsId>e0155e73-7d3f-4d27-ab5f-45c53517407d</UserSecretsId>
