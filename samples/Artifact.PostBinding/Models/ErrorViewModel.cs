@@ -1,4 +1,4 @@
-namespace Artifact.PostBinding.Models
+﻿namespace Artifact.PostBinding.Models
 {
     public class ErrorViewModel
     {
