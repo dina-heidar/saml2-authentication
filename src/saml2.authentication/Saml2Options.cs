@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Authentication;
@@ -45,8 +46,7 @@ namespace Saml2Core
         {
             //schemes
             ForwardChallenge = AuthenticationScheme;
-            SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            SignOutScheme = AuthenticationScheme;
+            SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;           
             AuthenticationScheme = Saml2Defaults.AuthenticationScheme;
 
             //paths
@@ -63,7 +63,7 @@ namespace Saml2Core
                 Format = NameIDFormats.Persistent,
                 SpNameQualifier = null
             };
-            IsPassive = false;            
+            IsPassive = false;
             AuthenticationMethod = Saml2AuthenticationBehaviour.RedirectGet;
             ResponseProtocolBinding = Saml2ResponseProtocolBinding.FormPost;
             SigningCertificateHashAlgorithmName = HashAlgorithmName.SHA256;
@@ -411,6 +411,45 @@ namespace Saml2Core
         ///   <c>true</c> if [use token lifetime]; otherwise, <c>false</c>.
         /// </value>
         public bool UseTokenLifetime { get; set; } = true;
+        /// <summary>
+        /// Gets or sets the valid audiences.If not set
+        /// the service provider entityId will be used
+        /// </summary>
+        /// <value>
+        /// The valid audiences.
+        /// </value>
+        public IEnumerable<string> ValidAudiences { get; set; } = new List<string>();
+        /// <summary>
+        /// Gets or sets a value indicating whether [validate artifact].
+        /// This will validate the incoming saml artifact value if HTTP-Artifact 
+        /// was set as protocol binding.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [validate artifact]; otherwise, <c>false</c>.
+        /// </value>
+        public bool ValidateArtifact { get; set; } = false;
+        /// <summary>
+        /// Gets or sets a value indicating whether [validate audience].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [validate audience]; otherwise, <c>false</c>.
+        /// </value>
+        public bool ValidateAudience { get; set; } = true;
+        /// <summary>
+        /// Gets or sets a value indicating whether [validate issuer].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [validate issuer]; otherwise, <c>false</c>.
+        /// </value>
+        public bool ValidateIssuer { get; set; } = true;
+        /// <summary>
+        /// Gets or sets the valid issuers. If not set
+        /// the entityId from the Idp will be used
+        /// </summary>
+        /// <value>
+        /// The valid issuers.
+        /// </value>
+        public IEnumerable<string> ValidIssuers { get; set; } = new List<string>();
         /// <summary>
         /// Gets or sets the bool responsible for signature validation
         /// true to verify the signature only; 

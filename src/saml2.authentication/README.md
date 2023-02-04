@@ -28,7 +28,7 @@ This tool implements the following SAML profiles, message flows and bindings:
             <td>HTTP POST</td>
         </tr>
         <tr>
-            <td>HTTP Artifact</td>
+            <td>HTTP Artifact https://en.wikipedia.org/wiki/SAML_2.0#ArtifactResolveRequest</td>
         </tr>
         <tr>            
             <td rowspan="2">IdP <code>&lt;Response&gt;</code> to SP</td>

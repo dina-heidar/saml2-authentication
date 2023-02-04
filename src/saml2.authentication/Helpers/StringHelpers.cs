@@ -32,7 +32,6 @@ namespace Saml2Core
             {
                 return defaultValue;
             }
-
             return parser(stringValue);
         }
     }

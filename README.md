@@ -23,6 +23,8 @@ https://www.oasis-open.org/committees/download.php/35711/sstc-saml-core-errata-2
 ## Todo
 OpenTelemtry
 ability to sign authnRequest with ecdsa ???
+ability to set issuer value for token validatio or defaults to Idp entityId
+ability to set issuer endpoint index for signin, and logout or defaults to first Idp endpoint
 ~~SamlCookieName~~
 ~~ReqAuthn type as forms or windows~~
 Dynamic provider set up

@@ -24,24 +24,25 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Text;
-using System.Threading.Tasks;
 using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
 using MetadataBuilder.Schema.Metadata;
+using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Protocols;
 using Saml.MetadataBuilder;
+using Saml2Core.Helpers;
 using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
 {
     public class Saml2Message : AuthenticationProtocolMessage
     {
+        #region Constructors
         public Saml2Message()
         {
         }
@@ -74,6 +75,58 @@ namespace Saml2Core
                 }
             }
         }
+        #endregion
+
+        #region Properties
+        public bool IsSignInMessage
+        {
+            get => SamlResponse != null || SamlArt != null || ArtifactResponse != null;
+        }
+        public string SamlRequest
+        {
+            get { return GetParameter(Saml2Constants.Parameters.SamlRequest); }
+            set { SetParameter(Saml2Constants.Parameters.SamlRequest, value); }
+        }
+        public string RelayState
+        {
+            get { return GetParameter(Saml2Constants.Parameters.RelayState); }
+            set { SetParameter(Saml2Constants.Parameters.RelayState, value); }
+        }
+        public string SigAlg
+        {
+            get { return GetParameter(Saml2Constants.Parameters.SigAlg); }
+            set { SetParameter(Saml2Constants.Parameters.SigAlg, value); }
+        }
+        public string Signature
+        {
+            get { return GetParameter(Saml2Constants.Parameters.Signature); }
+            set { SetParameter(Saml2Constants.Parameters.Signature, value); }
+        }
+        public string SamlArt
+        {
+            get { return GetParameter(Saml2Constants.Parameters.SamlArt); }
+            set { SetParameter(Saml2Constants.Parameters.SamlArt, value); }
+        }
+        public string SamlResponse
+        {
+            get { return GetParameter(Saml2Constants.Parameters.SamlResponse); }
+            set { SetParameter(Saml2Constants.Parameters.SamlResponse, EncodeDeflateMessage(value)); }
+        }
+        public string ArtifactResolve
+        {
+            get { return GetParameter(Saml2Constants.Parameters.ArtifactResolve); }
+            set { SetParameter(Saml2Constants.Parameters.ArtifactResolve, value); }
+        }
+        public string ArtifactResponse
+        {
+            get { return GetParameter(Saml2Constants.Parameters.ArtifactResponse); }
+            set { SetParameter(Saml2Constants.Parameters.ArtifactResponse, value); }
+        }
+        public Artifact Artifact { get; set; }
+
+        #endregion
+
+        #region Method
         public string CreateSignInRequest(Saml2Options options,
             string authnRequestId, string relayState)
         {
@@ -167,10 +220,107 @@ namespace Saml2Core
             }
         }
 
+        //public string CreateLogoutRequest(Saml2Options options,
+        //    string logoutRequestId, string sessionIndex,
+        //    string relayState, bool forcedSignout = false)
+        //{
+        //    var idpConfiguration = GetIdpDescriptor(options.Configuration);
+        //    var idpSingleServiceSingleLogoutEndpoints = idpConfiguration.SingleLogoutServices;
+        //    var issuer = GetSignOnEndpoint(idpSingleServiceSingleLogoutEndpoints, options.AuthenticationMethod);
+
+        //    var authnRequest = new AuthnRequestType()
+        //    {
+        //        ID = authnRequestId,
+        //        Issuer = new NameIDType()
+        //        {
+        //            Value = options.EntityId
+        //        },
+        //        Version = Saml2Constants.Version,
+        //        ForceAuthn = options.ForceAuthn,
+        //        ForceAuthnSpecified = true,
+        //        IsPassive = options.IsPassive,
+        //        IsPassiveSpecified = true,
+        //        RequestedAuthnContext = GetRequestedAuthnContext(options.RequestedAuthnContext),
+        //        NameIDPolicy = new NameIDPolicyType()
+        //        {
+        //            Format = options.NameIdPolicy.Format,
+        //            SPNameQualifier = options.NameIdPolicy.SpNameQualifier,
+        //            AllowCreate = true,
+        //            AllowCreateSpecified = true
+        //        },
+        //        Destination = issuer,
+        //        AssertionConsumerServiceIndex = (options.AssertionConsumerServiceIndex != null ? options.AssertionConsumerServiceIndex.Value : (ushort)0),
+        //        AssertionConsumerServiceIndexSpecified = options.AssertionConsumerServiceIndex.HasValue,
+        //        AssertionConsumerServiceURL = options.AssertionConsumerServiceUrl?.AbsoluteUri,
+        //        ProtocolBinding = (options.ResponseProtocolBinding != null ? GetProtocolBinding((Saml2ResponseProtocolBinding)options.ResponseProtocolBinding) : null),
+        //        IssueInstant = DateTime.UtcNow,
+        //    };
+
+        //    //create xml
+        //    var authnRequestXmlDoc = Serialize<AuthnRequestType>(authnRequest);
+
+        //    var saml2Message = new Saml2Message()
+        //    {
+        //        IssuerAddress = issuer
+        //    };
+
+        //    if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact)
+        //    {
+        //        if (idpConfiguration.ArtifactResolutionServices.Count() == 0)
+        //        {
+        //            throw new Saml2Exception("The identity provider does not support 'HTTP-Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.");
+        //        }
+        //    }
+
+        //    //check if there is a signature certificate
+        //    if (options.SigningCertificate == null && options.AuthenticationRequestSigned)
+        //    {
+        //        throw new Saml2Exception("Missing signing certificate. Either add a signing certitifcatre or change the `AuthenticationRequestSigned` to `false`.");
+        //    }
+
+        //    //if post method and needs signature then we need to ign the entire xml
+        //    if (options.AuthenticationMethod == Saml2AuthenticationBehaviour.FormPost)
+        //    {
+        //        if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
+        //        {
+        //            var signedAuthnRequestXmlDoc = authnRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
+        //                Namespaces.Assertion, $"#{authnRequestId}");
+
+        //            saml2Message.SamlRequest = System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedAuthnRequestXmlDoc.OuterXml));
+        //            saml2Message.RelayState = relayState.DeflateEncode();//.UrlEncode();
+        //        }
+        //        return saml2Message.BuildFormPost();
+        //    }
+        //    else
+        //    {
+        //        //redirect binding
+        //        //if there is a certificate to add a query signature parameter to the authnrequest
+        //        if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
+        //        {
+        //            saml2Message.SamlRequest = (authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
+        //            //relay state
+        //            saml2Message.RelayState = relayState.DeflateEncode().UrlEncode();
+
+        //            (var key, var signatureMethod, var keyName) =
+        //                XmlDocumentExtensions.SetSignatureAlgorithm(options.SigningCertificate);
+
+        //            //get signAlg
+        //            saml2Message.SigAlg = GetQuerySignAlg(signatureMethod);
+
+        //            //get signature
+        //            saml2Message.Signature = GetQuerySignature(key, saml2Message.BuildRedirectUrl(), options.SigningCertificateHashAlgorithmName);
+        //        }
+        //        return saml2Message.BuildRedirectUrl();
+        //    }
+        //}
+
         public string CreateArtifactResolutionRequest(Saml2Options options, string authnRequestId2, string artifact)
         {
             var idpConfiguration = GetIdpDescriptor(options.Configuration);
             var idpSingleServiceArtifactEndpoints = idpConfiguration.ArtifactResolutionServices;
+
+
+
             var issuer = idpSingleServiceArtifactEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_SOAP).Location;
 
             var artifactResolveRequest = new ArtifactResolveType
@@ -381,50 +531,6 @@ namespace Saml2Core
                 throw new Saml2Exception(status.Value);
             }
         }
-        public bool IsSignInMessage
-        {
-            get => SamlResponse != null || SamlArt != null || ArtifactResponse != null;
-        }
-        public string SamlRequest
-        {
-            get { return GetParameter(Saml2Constants.Parameters.SamlRequest); }
-            set { SetParameter(Saml2Constants.Parameters.SamlRequest, value); }
-        }
-        public string RelayState
-        {
-            get { return GetParameter(Saml2Constants.Parameters.RelayState); }
-            set { SetParameter(Saml2Constants.Parameters.RelayState, value); }
-        }
-        public string SigAlg
-        {
-            get { return GetParameter(Saml2Constants.Parameters.SigAlg); }
-            set { SetParameter(Saml2Constants.Parameters.SigAlg, value); }
-        }
-        public string Signature
-        {
-            get { return GetParameter(Saml2Constants.Parameters.Signature); }
-            set { SetParameter(Saml2Constants.Parameters.Signature, value); }
-        }
-        public string SamlArt
-        {
-            get { return GetParameter(Saml2Constants.Parameters.SamlArt); }
-            set { SetParameter(Saml2Constants.Parameters.SamlArt, value); }
-        }
-        public string SamlResponse
-        {
-            get { return GetParameter(Saml2Constants.Parameters.SamlResponse); }
-            set { SetParameter(Saml2Constants.Parameters.SamlResponse, EncodeDeflateMessage(value)); }
-        }
-        public string ArtifactResolve
-        {
-            get { return GetParameter(Saml2Constants.Parameters.ArtifactResolve); }
-            set { SetParameter(Saml2Constants.Parameters.ArtifactResolve, value); }
-        }
-        public string ArtifactResponse
-        {
-            get { return GetParameter(Saml2Constants.Parameters.ArtifactResponse); }
-            set { SetParameter(Saml2Constants.Parameters.ArtifactResponse, value); }
-        }
         public virtual string BuildRedirectUrl()
         {
             var _issuerAddress = this.IssuerAddress;
@@ -468,6 +574,9 @@ namespace Saml2Core
             stringBuilder.Append(Script);
             return stringBuilder.ToString();
         }
+        #endregion
+
+        #region Public Static 
         public static IDPSSODescriptor GetIdpDescriptor(EntityDescriptor configuration)
         {
             var idpConfiguration = (configuration.Items
@@ -475,6 +584,7 @@ namespace Saml2Core
 
             return idpConfiguration;
         }
+        #endregion
 
         #region Private 
 
@@ -654,7 +764,7 @@ namespace Saml2Core
             xmlDoc.PreserveWhitespace = true;
             return xmlDoc;
         }
-        private T DeSerializeToClass<T>(string xmlString) where T : class
+        private static T DeSerializeToClass<T>(string xmlString) where T : class
         {
             var xmlSerializer = new XmlSerializer(typeof(T));
             var safeSettings = new XmlReaderSettings
@@ -669,6 +779,37 @@ namespace Saml2Core
                 return ((T)xmlSerializer.Deserialize(reader));
             }
         }
+
+        public static Artifact GetArtifact(string parameter)
+        {
+            if (string.IsNullOrEmpty(parameter))
+                throw LogHelper.LogArgumentNullException(nameof(parameter));
+
+            var artifact = ArtifactHelpers.GetParsedArtifact(parameter);
+
+            return artifact;
+        }
+
+        public static string BuildArtifact(string sourceIdValue, short endpointIndexValue)
+        {
+            if (string.IsNullOrEmpty(sourceIdValue))
+                throw LogHelper.LogArgumentNullException(nameof(sourceIdValue));
+
+            var artifactString = ArtifactHelpers.CreateArtifact(sourceIdValue, endpointIndexValue);
+
+            return artifactString;
+        }
+      
+        public static bool ValidateArtifact(string artifactString, Saml2Options options)
+        {
+            var idpDescriptor = GetIdpDescriptor(options.Configuration);
+
+            var ars = idpDescriptor.ArtifactResolutionServices.Select(a => a.Index).ToArray();
+            var validIssuers = options.ValidIssuers.Prepend(options.Configuration.EntityID).ToArray();
+
+            return ArtifactHelpers.IsValid(artifactString, ars, validIssuers);
+        }
+
         private static string GetProtocolBinding(Saml2ResponseProtocolBinding responseProtocolBinding)
         {
             switch (responseProtocolBinding)
@@ -696,6 +837,9 @@ namespace Saml2Core
                 return signOnEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Post).Location;
             }
         }
+
+
+
         #endregion
     }
 }

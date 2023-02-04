@@ -63,6 +63,12 @@ namespace Saml2Core
         {
             public const string Issuer = "Issuer";
         }
+
+        public static class Artifacts
+        {
+            public const string SoapAction = "http://www.oasis-open.org/committees/security";
+            public const short ArtifactTypeCode = 0x0004;
+        }
         public static class Parameters
         {
             public const string SamlRequest = "SAMLRequest";
@@ -73,6 +79,7 @@ namespace Saml2Core
             public const string SamlResponse = "SAMLResponse";
             public const string ArtifactResponse = "ArtifactResponse";
             public const string ArtifactResolve = "ArtifactResolve";
+            public const string SOAPAction = "SOAPAction";
         }
         public static class NameIDFormats
         {
