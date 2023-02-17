@@ -30,14 +30,20 @@ namespace Saml2Core
     {
         /// <summary>
         /// Emits a 302 response to redirect the user agent to
-        /// the Saml2 provider using a GET request.
+        /// the Idp using a GET request.
         /// </summary>
         RedirectGet = 0,
 
         /// <summary>
         /// Emits an HTML form to redirect the user agent to
-        /// theSaml2 provider using a POST request.
+        /// the Idp using a POST request.
         /// </summary>
-        FormPost = 1
+        FormPost = 1,
+
+        /// <summary>
+        /// Creates an artifact and send it the Idp artifact endpoint
+        /// using GET request.
+        /// </summary>
+        Artifact = 3
     }
 }

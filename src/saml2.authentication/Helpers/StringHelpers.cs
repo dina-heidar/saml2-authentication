@@ -21,6 +21,10 @@
 //
 
 using System;
+using System.IO;
+using System.IO.Compression;
+using System.Text;
+using System.Web;
 
 namespace Saml2Core
 {
@@ -34,5 +38,90 @@ namespace Saml2Core
             }
             return parser(stringValue);
         }
+        /// <summary>
+        /// Base64s the encode.
+        /// </summary>
+        /// <param name="plainText">The plain text.</param>
+        /// <returns></returns>
+        internal static string Base64Encode(this string plainText)
+        {
+            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+            return System.Convert.ToBase64String(plainTextBytes);
+        }
+        /// <summary>
+        /// Base64s the decode.
+        /// </summary>
+        /// <param name="base64EncodedData">The base64 encoded data.</param>
+        /// <returns></returns>
+        internal static string Base64Decode(this string base64EncodedData)
+        {
+            var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
+            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+        }
+        /// <summary>
+        /// Deflates the encode.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        public static string DeflateEncode(this string value)
+        {
+            var memoryStream = new MemoryStream();
+            using (var writer = new StreamWriter(new DeflateStream(memoryStream, CompressionMode.Compress, true),
+                new UTF8Encoding(false)))
+            {
+                writer.Write(value);
+                writer.Close();
+                return Convert.ToBase64String(memoryStream.GetBuffer(), 0, (int)memoryStream.Length,
+                    Base64FormattingOptions.None);
+            }
+        }
+        /// <summary>
+        /// URLs the encode.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        public static string UrlEncode(this string value)
+        {
+            return HttpUtility.UrlEncode(value);
+        }
+        /// <summary>
+        /// Uppers the case URL encode.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        public static string UpperCaseUrlEncode(this string value)
+        {
+            var result = new StringBuilder(value);
+            for (var i = 0; i < result.Length; i++)
+                if (result[i] == '%')
+                {
+                    result[++i] = char.ToUpper(result[i]);
+                    result[++i] = char.ToUpper(result[i]);
+                }
+            return result.ToString();
+        }
+        /// <summary>
+        /// Deflates the decompress.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        public static string DeflateDecompress(this string value)
+        {
+            var encoded = Convert.FromBase64String(value);
+            var memoryStream = new MemoryStream(encoded);
+
+            var result = new StringBuilder();
+            using (var stream = new DeflateStream(memoryStream, CompressionMode.Decompress))
+            {
+                var testStream = new StreamReader(new BufferedStream(stream), Encoding.UTF8);
+                // It seems we need to "peek" on the StreamReader to get it started. If we don't do this, the first call to 
+                // ReadToEnd() will return string.empty.
+                var peek = testStream.Peek();
+                result.Append(testStream.ReadToEnd());
+
+                stream.Close();
+            }
+            return result.ToString();
+        }       
     }
 }

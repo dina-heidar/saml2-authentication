@@ -15,10 +15,15 @@ http://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0.htm
 http://docs.oasis-open.org/security/saml/v2.0/saml-conformance-2.0-os.pdf
 
 https://www.oasis-open.org/committees/download.php/35711/sstc-saml-core-errata-2.0-wd-06-diff.pdf
+https://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf section 3.2.2.2
 
 - found fun facts:
 1. Authn requests either can have the assertionURl And protocol binding request OR just assertionConsumerIndex
 2. ECDSA certificates are only for signing not encryptian
+3. <!-- an ArtifactResolve message SHOULD be signed -->
+4. <!-- an ArtifactResponse message SHOULD be signed -->
+5.The <LogoutRequest> message SHOULD be signed or otherwise authenticated and integrity protected
+by the protocol binding used to deliver the message
 
 ## Todo
 OpenTelemtry

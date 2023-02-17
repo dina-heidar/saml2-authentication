@@ -25,7 +25,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -36,6 +35,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Saml.MetadataBuilder;
+using Saml2Core.Helpers;
 using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
@@ -162,13 +162,13 @@ namespace Saml2Core
 
                     var artifactResolutionRequest = artifactResolveReceivedContext.ArtifactResolutionRequest;
 
-                    responseToken = await RedeemFromArtifactResolAsync(saml2Message);
+                    responseToken = await RedeemFromArtifactResolveServiceAsync(saml2Message);
                 }
 
                 else
                 {
                     //read saml response and vaidate signature if needed
-                    responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, Options);
+                    responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, null, Options);
                 }
 
                 //since this is a solicited login (sent from challenge)
@@ -206,10 +206,14 @@ namespace Saml2Core
                 if (assertion.Subject.Items.Any(x => x.GetType() == typeof(NameIDType)))
                 {
                     var nameIdType = (NameIDType)assertion.Subject.Items.FirstOrDefault(x => x.GetType() == typeof(NameIDType));
-                    Options.NameIdPolicy = new NameIdPolicy
+                    //write from incoming 
+                    Options.NameId = new NameId
                     {
                         SpNameQualifier = nameIdType.SPNameQualifier,
-                        Format = nameIdType.Format
+                        Format = nameIdType.Format,
+                        NameQualifier = nameIdType.NameQualifier,
+                        SpProvidedId = nameIdType.SPProvidedID,
+                        Value = nameIdType.Value
                     };
                 }
 
@@ -292,11 +296,6 @@ namespace Saml2Core
             {
                 return HandleRequestResult.Fail(exception, properties);
             }
-        }
-
-        Task IAuthenticationSignOutHandler.SignOutAsync(AuthenticationProperties properties)
-        {
-            throw new NotImplementedException();
         }
         /// <summary>
         /// The handler calls methods on the events which give the 
@@ -427,245 +426,219 @@ namespace Saml2Core
             //}
         }
 
-        protected virtual Task<bool> HandleSignOutCallbackAsync()
+        //response from Idp based on previous logout request
+        protected virtual async Task<bool> HandleSignOutCallbackAsync()
         {
-            return Task.FromResult(true);
+            Saml2Message saml2Message = null;
+            AuthenticationProperties properties = null;
+            ResponseType responseToken;
 
-
-        }
-        //sp initiated single logout
-        //public virtual async Task SignOutAsync(AuthenticationProperties? properties)
-        //{
-        //    var target = ResolveTarget(Options.ForwardSignOut);
-        //    if (target != null)
-        //    {
-        //        await Context.SignOutAsync(target, properties);
-        //        return;
-        //    }
-
-        //    if (_configuration == null)
-        //    {
-        //        _configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
-        //    }
-
-        //    var saml2Message = new Saml2Message();
-
-        //    //generate a nonce of random bytes and retain it in a browser cookie
-        //    //and encode this nonce and other information in the authentication properties
-        //    //'properties.Dictionary[correlationKey] = correlationId;'
-        //    //this will later be passed in a state query string parameter to the
-        //    //identity provider. The identity provider will return this value right
-        //    //back to your application after authenticating the user.         
-        //    GenerateCorrelationId(properties);
-
-        //    //create relay state
-        //    string relayState = Options.StateDataFormat.Protect(properties);
-
-        //    //LogoutRequest ID value which needs to be included in the AuthnRequest
-        //    //we will need this to create the same session cookie as well
-        //    var logoutRequestId = Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
-
-        //    //get session index value
-        //    var sessionIndex = Context.User.FindFirst(Saml2ClaimTypes.SessionIndex).Value;
-
-        //    //create saml cookie session to check against then delete it
-        //    //According to the SAML specification, the SAML response returned by the IdP
-        //    //should have an InResponseTo field that matches the authn request ID. This ties the SAML
-        //    //response to the authn request. The logout request ID is saved in the SAML session
-        //    //state so it can be checked against the InResponseTo.
-
-        //    //cleanup and remove existing saml cookies            
-        //    Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
-
-        //    //create cookie 
-        //    Options.Saml2CoreCookie.Name = $"{Options.Saml2CoreCookieName}.{(uint)relayState.GetHashCode()}";
-
-        //    // append it to response
-        //    Response.Cookies.Append(Options.Saml2CoreCookie.Name, logoutRequestId.Base64Encode(),
-        //        Options.Saml2CoreCookie.Build(Context));
-
-        //    var samlRequest = saml2Message.CreateLogoutRequest(Options, logoutRequestId, sessionIndex, relayState);
-
-        //    //if logout is redirect
-        //    // if logout is artifact -redirect
-
-        //    //if logout is post 
-        //    // if logout is artifact -post
-
-
-        //    if (Options.LogoutMethod == Saml2LogoutBehaviour.RedirectGet)
-        //    {
-        //        //call idp
-        //        Response.Redirect(samlRequest);
-        //    }
-        //    else if (Options.LogoutMethod == Saml2LogoutBehaviour.FormPost)
-        //    {
-        //        var content = samlRequest;
-        //        var buffer = Encoding.UTF8.GetBytes(content);
-
-        //        Response.ContentLength = buffer.Length;
-        //        Response.ContentType = "text/html;charset=UTF-8";
-
-        //        // Emit Cache-Control=no-cache to prevent client caching.
-        //        Response.Headers.Add("Cache-Control", "no-cache, no-store");
-        //        Response.Headers.Add("Pragma", "no-cache");
-        //        Response.Headers.Add("Expires", "Thu, 01 Jan 1970 00:00:00 GMT");
-
-        //        await Response.WriteAsync(content);
-        //    }
-        //    //TODO
-        //    else if (Options.LogoutMethod == Saml2LogoutBehaviour.Artififact)
-        //    {
-
-        //    }
-
-
-        //    //////////////////////////////////////
-
-
-
-        //    //properties.Items["redirectUri"] = Options.SignOutPath;
-        //    //bool forcedSignout = properties.GetParameter<bool>("forcedSignout");
-
-        //    //var target = ResolveTarget(Options.ForwardSignOut);
-        //    //if (target != null)
-        //    //{
-        //    //    await Context.SignOutAsync(target, properties);
-        //    //    return;
-        //    //}
-        //    //if (Options.Configuration == null)
-        //    //{
-        //    //    Options.Configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
-        //    //}
-
-        //    //string sendSignoutTo = new Uri(new Uri(CurrentUri), Options.SignOutPath).AbsoluteUri;
-
-        //    //prepare AuthnRequest ID, assertion Url and Relay State to prepare for Idp call 
-        ////    string logoutRequestId = "id" + Guid.NewGuid().ToString("N");
-        ////    string base64AuthnRequestId = logoutRequestId.Base64Encode();
-
-        ////    GenerateCorrelationId(properties);
-        ////    string relayState = Options.StateDataFormat.Protect(properties);
-
-        ////    //cleanup and remove existing cookies    
-        ////    // remove here in case logout request isn't completed       
-        ////    //Response.DeleteAllRequestIdCookies(Context.Request, Options.SamlCookieName);
-
-        ////    //create and append new response cookie
-        ////    Options.RequestCookieId.Name = Options.SamlCookieName + ".Signout" + "." + relayState.GetHashCode();
-        ////    Response.Cookies.Append(Options.RequestCookieId.Name, base64AuthnRequestId, Options.RequestCookieId.Build(Context));
-        ////    string logoutRequest = "/";
-        ////    if (Options.hasCertificate)
-        ////    {
-        ////        //create logoutrequest call
-        ////        logoutRequest = _saml2Service.CreateLogoutRequest(Options, logoutRequestId,
-        ////            Context.User.FindFirst(Saml2ClaimTypes.SessionIndex).Value,
-        ////            relayState, forcedSignout);
-        ////    }
-        ////    //call idp
-        ////    Response.Redirect(logoutRequest, true);
-        //}
-
-        protected virtual async Task<bool> HandleRemoteSignOutAsync()
-        {
-            if (Request.Method != HttpMethods.Post)
-                return false;
-
-            //read the form data
-            var form = await Request.ReadFormAsync();
-
-            //extract the relay state and deflate
-            var relayState = form[Saml2Constants.Parameters.RelayState].ToString()?.DeflateDecompress();
-
-            var authenticationProperties = Options.StateDataFormat.Unprotect(relayState);
-
-            // check if it is an idp initiated logout request or an sp intiated logout request 
-            // idp initated logout request. 
-            // the idp sends this out when a user wants to logout from a session in another app.
-            // it'll log them out of all other active sessions for other applications.
-            if (await _saml2Service.IsLogoutRequestAsync(Context.Request))
+            if (HttpMethods.IsGet(Request.Method))
             {
-                try
-                {
-                    // sign user out from saml2 cookie
-                    await Context.SignOutAsync(Options.SignOutScheme, authenticationProperties);
-                    Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
-
-                    // must send a logout response 
-                    // get the sid and create it?
-                    // get the inresponseto value and ID
-                    var logoutReponse = await _saml2Service.GetLogoutResponseAsync();
-                    //send the logout reponse to idp
-                    //TODO change this!
-
-                    //maybe send a new httpclient request??
-                    //check and see if it'll come back from idp with anything
-                    //check if this can be done via backchannel
-                    var content = "hwllo";
-                    var buffer = Encoding.UTF8.GetBytes(content);
-
-                    Response.ContentLength = buffer.Length;
-                    Response.ContentType = "text/html;charset=UTF-8";
-
-                    // Emit Cache-Control=no-cache to prevent client caching.
-
-                    //var t= await Response.Body.WriteAsync(buffer);
-                    Response.Redirect(logoutReponse.ID);
-
-                    //go back to app main page
-                    var redirectUrll = !string.IsNullOrEmpty(authenticationProperties.RedirectUri) ?
-                        authenticationProperties.RedirectUri : Options.DefaultRedirectUrl.ToString();
-
-                    Response.Redirect(redirectUrll, true);
-                    return true;
-                }
-                catch
-                {
-                    //TODO
-                }
-
-                return false;
+                var query = Request.Query;
+                // ToArray handles the StringValues.IsNullOrEmpty case.
+                // We assume non-empty Value does not contain null elements.
+#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+                saml2Message = new Saml2Message(query.Select(pair => new KeyValuePair<string, string[]>(pair.Key, pair.Value.ToArray())));
+#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+            }
+            // assumption: if the ContentType is "application/x-www-form-urlencoded"
+            // it should be safe to read as it is small.
+            else if (HttpMethods.IsPost(Request.Method)
+              && !string.IsNullOrEmpty(Request.ContentType)
+              // May have media/type; charset=utf-8, allow partial match.
+              && Request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)
+              && Request.Body.CanRead)
+            {
+                var form = await Request.ReadFormAsync(Context.RequestAborted);
+                // ToArray handles the StringValues.IsNullOrEmpty case.
+                // We assume non-empty Value does not contain null elements.
+#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+                saml2Message = new Saml2Message(form.Select(pair => new KeyValuePair<string, string[]>(pair.Key, pair.Value.ToArray())));
+#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
             }
 
-            // sp initated logout request.
-            // this is the response recieved from the
-            // idp as a result of the sp intiated logout request.
-            var response = form[Saml2Constants.Parameters.SamlResponse];
-            //var relayState = form[Saml2Constants.Parameters.RelayState].ToString()?.DeflateDecompress();
-
-            //var authenticationProperties = Options.StateDataFormat.Unprotect(relayState);
-
-            string base64EncodedSamlResponse = response;
-            ResponseType idpSamlResponseToken = await _saml2Service.GetLogoutResponseAsync();
-
-            IRequestCookieCollection cookies = Request.Cookies;
-            string signoutSamlRequestId = cookies[cookies.Keys.FirstOrDefault(key =>
-            key.StartsWith("balh" + ".Signout"))];
-
-            await _saml2Service.CheckIfReplayAttackAsync();
-            await _saml2Service.CheckStatusAsync();
-
-            //check to see if successfully logged out from both app and idp
-            if (Context.User.Identity.IsAuthenticated)
+            if (saml2Message == null || !saml2Message.IsLogoutMessage)
+            {
                 return false;
+            }
+            try
+            {
 
-            await Context.SignOutAsync(Options.SignOutScheme, authenticationProperties);
+                //get relay
+                var relayState = saml2Message.RelayState.DeflateDecompress();
+
+                //get authentication properties
+                properties = Options.StateDataFormat.Unprotect(relayState);
+
+                // Extract the user state from properties and reset.
+                properties.Items.TryGetValue(Saml2Defaults.UserstatePropertiesKey, out var userState);
+                saml2Message.RelayState = userState;
+                //}
+
+                //it is not a saml response or an artifact message
+                if (saml2Message.SamlResponse == null &&
+                    saml2Message.SamlArt == null &&
+                    saml2Message.ArtifactResponse == null)
+                {
+                    return false;
+                }
+
+                //if this was a samlart, then extract the saml artifact resolve value
+                //and send to Idp artifact resolution service
+                if (!string.IsNullOrEmpty(saml2Message.SamlArt))
+                {
+                    if (Options.ValidateArtifact)
+                    {
+                        Saml2Message.ValidateArtifact(saml2Message.SamlArt, Options);
+                    }
+
+                    var artifactResolveReceivedContext = await RunSamlArtifactResolveReceivedEventAsync(saml2Message, properties!);
+                    if (artifactResolveReceivedContext.Result != null)
+                    {
+                        return false;
+                    }
+
+                    saml2Message = artifactResolveReceivedContext.ProtocolMessage;
+                    properties = artifactResolveReceivedContext.Properties!;
+
+                    var artifactResolutionRequest = artifactResolveReceivedContext.ArtifactResolutionRequest;
+
+                    responseToken = await RedeemFromArtifactResolveServiceAsync(saml2Message);
+                }
+
+                else
+                {
+                    //read saml response and vaidate signature if needed
+                    responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse,
+                        Saml2Constants.ResponseTypes.LogoutResponse, Options);
+                }
+
+                //since this is a solicited login (sent from challenge)
+                // we must compare the incoming 'InResponseTo' what we have in the cookie
+                var requestCookies = Request.Cookies;
+                var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CoreCookie.Name))];
+
+                //validate it is not a replay attack by comparing inResponseTo values
+                saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
+
+                //cleanup and remove existing saml cookies
+                //no need for it since we checked the inResponseId values
+                Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
+
+                //check what the Idp response is -if it was successful or not
+                saml2Message.CheckStatus(responseToken);
+
+                if (Context.User.Identity.IsAuthenticated)
+                {
+                    await Context.SignOutAsync(Options.SignOutScheme, properties);
+                }
+
+                var redirectUrl = !string.IsNullOrEmpty(properties.RedirectUri) ?
+                    properties.RedirectUri : Options.DefaultRedirectUrl.ToString();
+                Response.Redirect(redirectUrl, true);
+
+                return true;
+            }
+            catch (Exception exception)
+            {
+                return false;
+            }
+        }
+
+        //sp initiated single logout
+        public virtual async Task SignOutAsync(AuthenticationProperties? properties)
+        {
+            var target = ResolveTarget(Options.ForwardSignOut);
+            if (target != null)
+            {
+                await Context.SignOutAsync(target, properties);
+                return;
+            }
+            if (_configuration == null && Options.ConfigurationManager != null)
+            {
+                _configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
+                Options.Configuration = _configuration;
+            }
+
+            var saml2Message = new Saml2Message();
+
+            //generate a nonce of random bytes and retain it in a browser cookie
+            //and encode this nonce and other information in the authentication properties
+            //'properties.Dictionary[correlationKey] = correlationId;'
+            //this will later be passed in a state query string parameter to the
+            //identity provider. The identity provider will return this value right
+            //back to your application after authenticating the user.         
+            GenerateCorrelationId(properties);
+
+            //create relay state
+            string relayState = Options.StateDataFormat.Protect(properties);
+
+            //LogoutRequest ID value which needs to be included in the AuthnRequest
+            //we will need this to create the same session cookie as well
+            var logoutRequestId = Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
+
+            //get session index value
+            var sessionIndex = Context.User.FindFirst(Saml2ClaimTypes.SessionIndex).Value;
+
+            //create saml cookie session to check against then delete it
+            //According to the SAML specification, the SAML response returned by the IdP
+            //should have an InResponseTo field that matches the authn request ID. This ties the SAML
+            //response to the authn request. The logout request ID is saved in the SAML session
+            //state so it can be checked against the InResponseTo.
+
+            //cleanup and remove existing saml cookies            
             Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
 
-            var redirectUrl = !string.IsNullOrEmpty(authenticationProperties.RedirectUri) ?
-                authenticationProperties.RedirectUri : Options.DefaultRedirectUrl.ToString();
+            //create cookie 
+            Options.Saml2CoreCookie.Name = $"{Options.Saml2CoreCookieName}.{(uint)relayState.GetHashCode()}";
 
-            Response.Redirect(redirectUrl, true);
+            // append it to response
+            Response.Cookies.Append(Options.Saml2CoreCookie.Name, logoutRequestId.Base64Encode(),
+                Options.Saml2CoreCookie.Build(Context));
+
+            var samlRequest = saml2Message.CreateLogoutRequest(Options, logoutRequestId, sessionIndex, relayState);
+
+            //if logout is redirect
+            if (Options.LogoutMethod == Saml2LogoutBehaviour.RedirectGet)
+            {
+                //call idp
+                Response.Redirect(samlRequest);
+            }
+            //if logout is post 
+            else if (Options.LogoutMethod == Saml2LogoutBehaviour.FormPost)
+            {
+                var content = samlRequest;
+                var buffer = Encoding.UTF8.GetBytes(content);
+
+                Response.ContentLength = buffer.Length;
+                Response.ContentType = "text/html;charset=UTF-8";
+
+                // Emit Cache-Control=no-cache to prevent client caching.
+                Response.Headers.Add("Cache-Control", "no-cache, no-store");
+                Response.Headers.Add("Pragma", "no-cache");
+                Response.Headers.Add("Expires", "Thu, 01 Jan 1970 00:00:00 GMT");
+
+                await Response.WriteAsync(content);
+            }
+        }
+
+        //idp sending a fan logout request
+        protected virtual async Task<bool> HandleRemoteSignOutAsync()
+        {
             return true;
         }
 
-        protected virtual async Task<ResponseType> RedeemFromArtifactResolAsync(Saml2Message saml2Message)
-        {
-            Logger.RedeemingArtifactForAssertion();
 
+        protected virtual async Task<ResponseType> RedeemFromArtifactResolveServiceAsync(Saml2Message saml2Message)
+        {
+            var artifactValue = Saml2Message.GetArtifact(saml2Message.SamlArt);
+            var arsIndex = (ushort)artifactValue.EndpointIndex;
+
+            //use the index that was in the returned parsed artifact object
             var requestMessage = new HttpRequestMessage(HttpMethod.Post,
                 Saml2Message.GetIdpDescriptor(Options.Configuration).ArtifactResolutionServices
-                .FirstOrDefault(x => x.Index == Options.ArtifactResolutionServiceIndex).Location);
+                .FirstOrDefault(x => x.Index == arsIndex).Location);
 
             //artifact ID value which needs to be included in the artifact resolve request
             //we will need this to create the same session cookie as well
@@ -741,7 +714,7 @@ namespace Saml2Core
 
             return context;
         }
-       
+
         #endregion
     }
 }

@@ -39,14 +39,22 @@ public class Program
             options.WantAssertionsSigned = true;
             options.AuthenticationRequestSigned = true;
             options.VerifySignatureOnly = false;
+
             options.AuthenticationMethod = Saml2AuthenticationBehaviour.FormPost; //front channel
             options.RequestedAuthnContext = RequestedAuthnContextTypes.FormsAuthentication();
             options.ResponseProtocolBinding = Saml2ResponseProtocolBinding.Artifact; //send back artifact
             options.AssertionConsumerServiceUrl = new Uri("https://localhost:5001/saml2-artifact");
+
+            //new
+            options.LogoutMethod = Saml2LogoutBehaviour.RedirectGet;
+            options.LogoutRequestSigned = true;
+            options.SignOutPath = new PathString("/signedout");
+
             options.ValidateArtifact= true;
             options.ValidIssuers = new string[] { "dinah.la.gov" };
             //options.AssertionConsumerServiceIndex = 2;
             options.CallbackPath = new PathString("/saml2-artifact");
+           
 
             if (environment.IsDevelopment())
             {

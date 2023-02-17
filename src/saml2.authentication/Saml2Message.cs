@@ -82,6 +82,10 @@ namespace Saml2Core
         {
             get => SamlResponse != null || SamlArt != null || ArtifactResponse != null;
         }
+        public bool IsLogoutMessage
+        {
+            get => SamlResponse != null || SamlArt != null || ArtifactResponse != null;
+        }
         public string SamlRequest
         {
             get { return GetParameter(Saml2Constants.Parameters.SamlRequest); }
@@ -132,7 +136,8 @@ namespace Saml2Core
         {
             var idpConfiguration = GetIdpDescriptor(options.Configuration);
             var idpSingleServiceSignOnEndpoints = idpConfiguration.SingleSignOnServices;
-            var issuer = GetSignOnEndpoint(idpSingleServiceSignOnEndpoints, options.AuthenticationMethod);
+            var destination = GetSignOnEndpoint(idpSingleServiceSignOnEndpoints, options.AuthenticationMethod,
+                options.IdpSingleSignOnServiceLocationIndex.ToString());
 
             var authnRequest = new AuthnRequestType()
             {
@@ -151,10 +156,10 @@ namespace Saml2Core
                 {
                     Format = options.NameIdPolicy.Format,
                     SPNameQualifier = options.NameIdPolicy.SpNameQualifier,
-                    AllowCreate = true,
+                    AllowCreate = options.NameIdPolicy.AllowCreate,
                     AllowCreateSpecified = true
                 },
-                Destination = issuer,
+                Destination = destination,
                 AssertionConsumerServiceIndex = (options.AssertionConsumerServiceIndex != null ? options.AssertionConsumerServiceIndex.Value : (ushort)0),
                 AssertionConsumerServiceIndexSpecified = options.AssertionConsumerServiceIndex.HasValue,
                 AssertionConsumerServiceURL = options.AssertionConsumerServiceUrl?.AbsoluteUri,
@@ -167,7 +172,7 @@ namespace Saml2Core
 
             var saml2Message = new Saml2Message()
             {
-                IssuerAddress = issuer
+                IssuerAddress = destination
             };
 
             if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact)
@@ -220,99 +225,94 @@ namespace Saml2Core
             }
         }
 
-        //public string CreateLogoutRequest(Saml2Options options,
-        //    string logoutRequestId, string sessionIndex,
-        //    string relayState, bool forcedSignout = false)
-        //{
-        //    var idpConfiguration = GetIdpDescriptor(options.Configuration);
-        //    var idpSingleServiceSingleLogoutEndpoints = idpConfiguration.SingleLogoutServices;
-        //    var issuer = GetSignOnEndpoint(idpSingleServiceSingleLogoutEndpoints, options.AuthenticationMethod);
+        public string CreateLogoutRequest(Saml2Options options,
+            string logoutRequestId, string sessionIndex,
+            string relayState, bool forcedSignout = false)
+        {
+            var idpConfiguration = GetIdpDescriptor(options.Configuration);
+            var idpSingleServiceSingleLogoutEndpoints = idpConfiguration.SingleLogoutServices;
+            var destination = GetSingleLogoutEndpoint(idpSingleServiceSingleLogoutEndpoints, options.LogoutMethod,
+                options.IdpSingleLogoutServiceLocationIndex.ToString());
 
-        //    var authnRequest = new AuthnRequestType()
-        //    {
-        //        ID = authnRequestId,
-        //        Issuer = new NameIDType()
-        //        {
-        //            Value = options.EntityId
-        //        },
-        //        Version = Saml2Constants.Version,
-        //        ForceAuthn = options.ForceAuthn,
-        //        ForceAuthnSpecified = true,
-        //        IsPassive = options.IsPassive,
-        //        IsPassiveSpecified = true,
-        //        RequestedAuthnContext = GetRequestedAuthnContext(options.RequestedAuthnContext),
-        //        NameIDPolicy = new NameIDPolicyType()
-        //        {
-        //            Format = options.NameIdPolicy.Format,
-        //            SPNameQualifier = options.NameIdPolicy.SpNameQualifier,
-        //            AllowCreate = true,
-        //            AllowCreateSpecified = true
-        //        },
-        //        Destination = issuer,
-        //        AssertionConsumerServiceIndex = (options.AssertionConsumerServiceIndex != null ? options.AssertionConsumerServiceIndex.Value : (ushort)0),
-        //        AssertionConsumerServiceIndexSpecified = options.AssertionConsumerServiceIndex.HasValue,
-        //        AssertionConsumerServiceURL = options.AssertionConsumerServiceUrl?.AbsoluteUri,
-        //        ProtocolBinding = (options.ResponseProtocolBinding != null ? GetProtocolBinding((Saml2ResponseProtocolBinding)options.ResponseProtocolBinding) : null),
-        //        IssueInstant = DateTime.UtcNow,
-        //    };
+            var logoutRequest = new LogoutRequestType()
+            {
+                ID = logoutRequestId,
+                Issuer = new NameIDType()
+                {
+                    Value = options.EntityId
+                },
+                Version = Saml2Constants.Version,
+                Reason = (forcedSignout == false ? Saml2Constants.Reasons.User : Saml2Constants.Reasons.Admin),
+                SessionIndex = new string[] { sessionIndex },
+                Destination = destination,
+                IssueInstant = DateTime.UtcNow,
+                Item = new NameIDType()
+                {
+                    Format = options.NameId.Format,
+                    NameQualifier = options.NameId.NameQualifier,
+                    SPProvidedID = options.NameId.SpProvidedId,
+                    SPNameQualifier = options.NameId.NameQualifier,
+                    Value = options.NameId.Value
+                }
+            };
 
-        //    //create xml
-        //    var authnRequestXmlDoc = Serialize<AuthnRequestType>(authnRequest);
+            //create xml
+            var logoutRequestXmlDoc = Serialize<LogoutRequestType>(logoutRequest);
 
-        //    var saml2Message = new Saml2Message()
-        //    {
-        //        IssuerAddress = issuer
-        //    };
+            var saml2Message = new Saml2Message()
+            {
+                IssuerAddress = destination
+            };
 
-        //    if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact)
-        //    {
-        //        if (idpConfiguration.ArtifactResolutionServices.Count() == 0)
-        //        {
-        //            throw new Saml2Exception("The identity provider does not support 'HTTP-Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.");
-        //        }
-        //    }
+            if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact)
+            {
+                if (idpConfiguration.ArtifactResolutionServices.Count() == 0)
+                {
+                    throw new Saml2Exception("The identity provider does not support 'HTTP-Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.");
+                }
+            }
 
-        //    //check if there is a signature certificate
-        //    if (options.SigningCertificate == null && options.AuthenticationRequestSigned)
-        //    {
-        //        throw new Saml2Exception("Missing signing certificate. Either add a signing certitifcatre or change the `AuthenticationRequestSigned` to `false`.");
-        //    }
+            //check if there is a signature certificate
+            if (options.SigningCertificate == null && options.LogoutRequestSigned)
+            {
+                throw new Saml2Exception("Missing signing certificate. Either add a signing certitifcatre or change the `AuthenticationRequestSigned` to `false`.");
+            }
 
-        //    //if post method and needs signature then we need to ign the entire xml
-        //    if (options.AuthenticationMethod == Saml2AuthenticationBehaviour.FormPost)
-        //    {
-        //        if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
-        //        {
-        //            var signedAuthnRequestXmlDoc = authnRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
-        //                Namespaces.Assertion, $"#{authnRequestId}");
+            //if post method and needs signature then we need to sign the entire xml
+            if (options.LogoutMethod == Saml2LogoutBehaviour.FormPost)
+            {
+                if (options.SigningCertificate != null && options.LogoutRequestSigned)
+                {
+                    var signedLogoutRequestXmlDoc = logoutRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
+                        Namespaces.Assertion, $"#{logoutRequestId}");
 
-        //            saml2Message.SamlRequest = System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedAuthnRequestXmlDoc.OuterXml));
-        //            saml2Message.RelayState = relayState.DeflateEncode();//.UrlEncode();
-        //        }
-        //        return saml2Message.BuildFormPost();
-        //    }
-        //    else
-        //    {
-        //        //redirect binding
-        //        //if there is a certificate to add a query signature parameter to the authnrequest
-        //        if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
-        //        {
-        //            saml2Message.SamlRequest = (authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
-        //            //relay state
-        //            saml2Message.RelayState = relayState.DeflateEncode().UrlEncode();
+                    saml2Message.SamlRequest = System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedLogoutRequestXmlDoc.OuterXml));
+                    saml2Message.RelayState = relayState.DeflateEncode();//.UrlEncode();
+                }
+                return saml2Message.BuildFormPost();
+            }
+            else
+            {
+                //redirect binding
+                //if there is a certificate to add a query signature parameter to the logout nrequest
+                if (options.SigningCertificate != null && options.LogoutRequestSigned)
+                {
+                    saml2Message.SamlRequest = (logoutRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
+                    //relay state
+                    saml2Message.RelayState = relayState.DeflateEncode().UrlEncode();
 
-        //            (var key, var signatureMethod, var keyName) =
-        //                XmlDocumentExtensions.SetSignatureAlgorithm(options.SigningCertificate);
+                    (var key, var signatureMethod, var keyName) =
+                        XmlDocumentExtensions.SetSignatureAlgorithm(options.SigningCertificate);
 
-        //            //get signAlg
-        //            saml2Message.SigAlg = GetQuerySignAlg(signatureMethod);
+                    //get signAlg
+                    saml2Message.SigAlg = GetQuerySignAlg(signatureMethod);
 
-        //            //get signature
-        //            saml2Message.Signature = GetQuerySignature(key, saml2Message.BuildRedirectUrl(), options.SigningCertificateHashAlgorithmName);
-        //        }
-        //        return saml2Message.BuildRedirectUrl();
-        //    }
-        //}
+                    //get signature
+                    saml2Message.Signature = GetQuerySignature(key, saml2Message.BuildRedirectUrl(), options.SigningCertificateHashAlgorithmName);
+                }
+                return saml2Message.BuildRedirectUrl();
+            }
+        }
 
         public string CreateArtifactResolutionRequest(Saml2Options options, string authnRequestId2, string artifact)
         {
@@ -454,7 +454,8 @@ namespace Saml2Core
             }
             return DeSerializeToClass<AssertionType>(token);
         }
-        public ResponseType GetSamlResponseToken(string base64EncodedSamlResponse, Saml2Options options)
+        public ResponseType GetSamlResponseToken(string base64EncodedSamlResponse,
+            string responseType, Saml2Options options)
         {
             var doc = new XmlDocument
             {
@@ -478,7 +479,8 @@ namespace Saml2Core
                     throw new Saml2Exception("Response signature is not valid.");
                 }
             }
-            var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseString);
+            var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseString,
+                responseType, Saml2Constants.Namespaces.Protocol, false);
             return samlResponseType;
         }
         public ResponseType GetArtifactResponseToken(string envelope, Saml2Options options)
@@ -764,9 +766,36 @@ namespace Saml2Core
             xmlDoc.PreserveWhitespace = true;
             return xmlDoc;
         }
+
         private static T DeSerializeToClass<T>(string xmlString) where T : class
         {
             var xmlSerializer = new XmlSerializer(typeof(T));
+
+            var safeSettings = new XmlReaderSettings
+            {
+                XmlResolver = null,
+                DtdProcessing = DtdProcessing.Prohibit,
+                ValidationType = ValidationType.None
+            };
+
+            using (var reader = XmlReader.Create(new StringReader(xmlString), safeSettings))
+            {
+                return ((T)xmlSerializer.Deserialize(reader));
+            }
+        }
+
+        private static T DeSerializeToClass<T>(string xmlString,
+            string elementName = null, string namespaceString = null, bool isNullable = false) where T : class
+        {
+            var xmlRootAttribute = new XmlRootAttribute
+            {
+                ElementName = elementName,
+                Namespace = namespaceString,
+                IsNullable = isNullable
+            };
+
+            var xmlSerializer = new XmlSerializer(typeof(T), xmlRootAttribute);
+
             var safeSettings = new XmlReaderSettings
             {
                 XmlResolver = null,
@@ -799,7 +828,7 @@ namespace Saml2Core
 
             return artifactString;
         }
-      
+
         public static bool ValidateArtifact(string artifactString, Saml2Options options)
         {
             var idpDescriptor = GetIdpDescriptor(options.Configuration);
@@ -826,15 +855,55 @@ namespace Saml2Core
                     return ProtocolBindings.HTTP_Post;
             }
         }
-        private static string GetSignOnEndpoint(Endpoint[] signOnEndpoints, Saml2AuthenticationBehaviour method)
+        private static string GetSignOnEndpoint(Endpoint[] signOnEndpoints, Saml2AuthenticationBehaviour method,
+            string idpSsoEndpointLocation)
         {
             if (method == Saml2AuthenticationBehaviour.RedirectGet)
             {
-                return signOnEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Redirect).Location;
+                if (string.IsNullOrEmpty(idpSsoEndpointLocation))
+                {
+                    return signOnEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Redirect).Location;
+                }
+                else
+                {
+                    return signOnEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Redirect
+                    && s.Location == idpSsoEndpointLocation).Location;
+                }
             }
             else
             {
-                return signOnEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Post).Location;
+                if (string.IsNullOrEmpty(idpSsoEndpointLocation))
+                {
+                    return signOnEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Post).Location;
+                }
+                return signOnEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Post
+                 && s.Location == idpSsoEndpointLocation).Location;
+            }
+        }
+
+        private static string GetSingleLogoutEndpoint(Endpoint[] singleLogoutEndpoints, Saml2LogoutBehaviour method,
+           string idpSloEndpointLocation)
+        {
+            if (method == Saml2LogoutBehaviour.RedirectGet)
+            {
+                if (string.IsNullOrEmpty(idpSloEndpointLocation))
+                {
+                    return singleLogoutEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Redirect).Location;
+                }
+                else
+                {
+                    return singleLogoutEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Redirect
+                    && s.Location == idpSloEndpointLocation).Location;
+                }
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(idpSloEndpointLocation))
+                {
+                    return singleLogoutEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Post).Location;
+                }
+                return singleLogoutEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_Post
+                 && s.Location == idpSloEndpointLocation).Location;
             }
         }
 

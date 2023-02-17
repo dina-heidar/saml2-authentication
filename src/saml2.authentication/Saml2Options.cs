@@ -61,7 +61,8 @@ namespace Saml2Core
             NameIdPolicy = new NameIdPolicy
             {
                 Format = NameIDFormats.Persistent,
-                SpNameQualifier = null
+                SpNameQualifier = null,
+                AllowCreate = true
             };
             IsPassive = false;
             AuthenticationMethod = Saml2AuthenticationBehaviour.RedirectGet;
@@ -114,12 +115,31 @@ namespace Saml2Core
 
         /// <summary>
         /// Gets or sets the index of the Idp artifact resolution service.
+        /// if null, value will be parsed from artifact value
         /// </summary>
         /// <value>
         /// The index of the artifact resolution service.
         /// The default value is '0'.
         /// </value>
-        public ushort ArtifactResolutionServiceIndex { get; set; }
+       // public ushort? IdpArtifactResolutionServiceIndex { get; set; }
+        /// <summary>
+        /// Gets or sets the location of the idp single sign on service index.
+        /// if null, the first SignleSignOnService location with configured 
+        /// protocol binding will be used.
+        /// </summary>
+        /// <value>
+        /// The index of the idp single sign on service.
+        /// </value>
+        public ushort? IdpSingleSignOnServiceLocationIndex { get; set; }
+        /// <summary>
+        /// Gets or sets the location of the idp single logout service index.
+        /// if null, the first SingleLogoutService location with configured 
+        /// protocol binding will be used.
+        /// </summary>
+        /// <value>
+        /// The index of the idp single logout service.
+        /// </value>
+        public ushort? IdpSingleLogoutServiceLocationIndex { get; set; }
         /// <summary>
         /// Gets or sets the index of the assertion consumer service.
         /// If this is populated, it will override the Callback, 
@@ -254,6 +274,13 @@ namespace Saml2Core
         /// </value>
         public string MetadataAddress { get; set; }
         /// <summary>
+        /// Gets or sets the name identifier.
+        /// </summary>
+        /// <value>
+        /// The name identifier.
+        /// </value>
+        internal NameId NameId { get; set; }
+        /// <summary>
         /// Gets or sets the name identifier format. This is needed to perform logout and SLO.
         /// </summary>
         /// <value>
@@ -289,6 +316,17 @@ namespace Saml2Core
         /// The logout method. The default value is 'HTTP-Redirect'
         /// </value>
         public Saml2LogoutBehaviour LogoutMethod { get; set; }
+        /// <summary>
+        /// Gets or sets a value indicating whether [logout request signed].
+        /// The 'LogoutRequest' message SHOULD be signed or otherwise authenticated and integrity protected
+        /// by the protocol binding used to deliver the message
+        /// https://www.oasis-open.org/committees/download.php/35711/sstc-saml-core-errata-2.0-wd-06-diff.pdf
+        /// section 3.7.1
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [logout request signed]; otherwise, <c>false</c>.
+        /// </value>
+        public bool LogoutRequestSigned { get; set; }
         /// <summary>
         /// Gets or sets the 'max_age'. If set the 'max_age' parameter 
         /// will be sent with the authentication request. If the identity
@@ -355,7 +393,7 @@ namespace Saml2Core
         /// </value>
         public string Saml2CoreCookieName { get; set; }
         /// <summary>
-        /// Gets or sets the remote sign out path. The default value is "/signedout"
+        /// Gets or sets the remote sign out path. The default value is "/saml2-signout"
         /// This is used by the Idp to POST back to after it logs the user out of the Idp session.
         /// </summary>
         /// <value>
