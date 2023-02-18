@@ -614,11 +614,6 @@ namespace Saml2Core
                 Response.ContentLength = buffer.Length;
                 Response.ContentType = "text/html;charset=UTF-8";
 
-                // Emit Cache-Control=no-cache to prevent client caching.
-                Response.Headers.Add("Cache-Control", "no-cache, no-store");
-                Response.Headers.Add("Pragma", "no-cache");
-                Response.Headers.Add("Expires", "Thu, 01 Jan 1970 00:00:00 GMT");
-
                 await Response.WriteAsync(content);
             }
         }
