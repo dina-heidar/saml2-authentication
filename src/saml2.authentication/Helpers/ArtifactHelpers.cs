@@ -30,10 +30,45 @@ namespace Saml2Core.Helpers
 {
     public class Artifact
     {
+        /// <summary>
+        /// Gets or sets the type code value.
+        /// Type of the artifact. This is always 0x0004
+        /// </summary>
+        /// <value>
+        /// The type code value.
+        /// </value>
         public short TypeCodeValue { get; set; }
+        public string TypeCodeValueString { get; set; }
+        /// <summary>
+        /// Gets or sets the index of the endpoint.
+        /// The issuer's artifact Resolution Service endpoint 
+        /// where the artifact should be resolved
+        /// </summary>
+        /// <value>
+        /// The index of the endpoint.
+        /// </value>
         public short? EndpointIndex { get; set; }
+        public string EndpointIndexString { get; set; }
+        /// <summary>
+        /// Gets or sets the source code identifier. 
+        /// Represents the entity ID of the provider who created 
+        /// this artifact. The entity ID is hashed using SHA-1, 
+        /// ensuring that it's always 20 bytes in length
+        /// </summary>
+        /// <value>
+        /// The source code identifier.
+        /// </value>
         public byte[] SourceCodeId { get; set; }
+        public string SourceCodeIdString { get; set; }
+        /// <summary>
+        /// Gets or sets the message handler.
+        /// A cryptographically random value that identifies this specific artifact
+        /// </summary>
+        /// <value>
+        /// The message handler.
+        /// </value>
         public byte[] MessageHandler { get; set; }
+        public string MessageHandlerString { get; set; }
     }
 
     internal static class ArtifactHelpers
@@ -75,14 +110,25 @@ namespace Saml2Core.Helpers
 
             //sourceIdBytes is 20 bytes and is hashed, we cannot hash but we can compare
             var sourceIdBytes = new byte[sourceIdLength];
+
             Array.Copy(artifactBytes, 4, sourceIdBytes, 0, sourceIdLength);
 
             //messageHandlerBytes is 20 bytes 
             var messageHandlerBytes = new byte[messageHandlerLength];
             Array.Copy(artifactBytes, 24, messageHandlerBytes, 0, messageHandlerLength);
 
+            var typeCodeValueString = BitConverter.ToString(artifactBytes, 0, 2).Replace("-", string.Empty);
+            var endpointIndexString = BitConverter.ToString(artifactBytes, 2, 2).Replace("-", string.Empty);
+            var sourceIdString = BitConverter.ToString(artifactBytes, 4, 20).Replace("-", string.Empty);
+            var messageHandlerString = BitConverter.ToString(artifactBytes, 24, 20).Replace("-", string.Empty);
+
             var artifact = new Artifact
             {
+                TypeCodeValueString = typeCodeValueString,
+                EndpointIndexString = endpointIndexString,
+                SourceCodeIdString = sourceIdString,
+                MessageHandlerString = messageHandlerString,
+
                 TypeCodeValue = typeCodeValue,
                 EndpointIndex = endpointIndex,
                 SourceCodeId = sourceIdBytes,
@@ -111,8 +157,9 @@ namespace Saml2Core.Helpers
 
             //sourceId
             var sourceIdHashed = new byte[sourceIdLength];
-            var sha1 = SHA1Managed.Create();
-            sourceIdHashed = sha1.ComputeHash(Encoding.UTF8.GetBytes(sourceIdValue));
+
+            var sha1 = SHA1.Create();
+            sourceIdHashed = sha1.ComputeHash(Encoding.ASCII.GetBytes(sourceIdValue));
 
             //messagehandler
             var messageHandler = new byte[messageHandlerLength];
@@ -151,12 +198,25 @@ namespace Saml2Core.Helpers
 
             //check sourceId
             var sci = artifact.SourceCodeId;
-            var sha1 = SHA1Managed.Create();
+            var sha1 = SHA1.Create();
+
+            //foreach (string idpEntityId in validIssuers)
+            //{
+            //    var idpEntityIdHashed = BitConverter.ToString(sha1.ComputeHash(Encoding.UTF8.GetBytes(idpEntityId)));
+            //    idpEntityIdHashed = idpEntityIdHashed.Replace("-", string.Empty);
+
+            //    if (idpEntityIdHashed == sci)
+            //    {
+            //        var idp = idpEntityId;
+            //        break;
+            //    }
+            //}
 
             foreach (var sourceId in validIssuers)
             {
                 var sourceIdHashed = new byte[sourceIdLength];
                 sourceIdHashed = sha1.ComputeHash(Encoding.UTF8.GetBytes(sourceId));
+
                 if (sci.SequenceEqual(sourceIdHashed))
                 {
                     break;

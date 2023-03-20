@@ -1,11 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>PostBinding</RootNamespace>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <UserSecretsId>e0155e73-7d3f-4d27-ab5f-45c53517407d</UserSecretsId>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>2322cef5-654b-4152-9b74-8a1566733374</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>

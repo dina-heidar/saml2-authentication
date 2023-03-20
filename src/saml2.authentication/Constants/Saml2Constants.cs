@@ -145,6 +145,7 @@ namespace Saml2Core
         {
             public const string Namespace = "http://saml2Core/";
             public const string SessionIndex = $"{Namespace}sid";
+            public const string NameId = $"{Namespace}nameId";
         }
         public static class ProtocolBindings
         {

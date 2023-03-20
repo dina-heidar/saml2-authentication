@@ -168,7 +168,8 @@ namespace Saml2Core
                 else
                 {
                     //read saml response and vaidate signature if needed
-                    responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, null, Options);
+                    responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, 
+                        Saml2Constants.ResponseTypes.AuthnResponse, Options);
                 }
 
                 //since this is a solicited login (sent from challenge)
@@ -176,12 +177,11 @@ namespace Saml2Core
                 var requestCookies = Request.Cookies;
                 var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CoreCookie.Name))];
 
+                //cleanup and remove existing saml cookies
+                Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
+
                 //validate it is not a replay attack by comparing inResponseTo values
                 saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
-
-                //cleanup and remove existing saml cookies
-                //no need for it since we checked the inResponseId values
-                Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
 
                 //check what the Idp response is -if it was successful or not
                 saml2Message.CheckStatus(responseToken);
@@ -200,6 +200,7 @@ namespace Saml2Core
                 if (assertion.Items.Any(x => x.GetType() == typeof(AuthnStatementType)))
                 {
                     session = (AuthnStatementType)assertion.Items.FirstOrDefault(x => x.GetType() == typeof(AuthnStatementType));
+
                 }
 
                 //is it to be re-used for logout
@@ -278,10 +279,14 @@ namespace Saml2Core
 
                 ClaimsIdentity identity = new ClaimsIdentity(principal.Claims, Scheme.Name);
 
-                session.SessionIndex = !String.IsNullOrEmpty(session.SessionIndex) ? session.SessionIndex : assertion.ID;
+                if (!string.IsNullOrEmpty(session.SessionIndex))
+                {
+                    //update the cookie with session index value
+                    //will be used for logout
+                    //get the session index from assertion so you can use it to logout later
+                    identity.AddClaim(new Claim(Saml2ClaimTypes.SessionIndex, session.SessionIndex));
+                }
 
-                //get the session index from assertion so you can use it to logout later
-                identity.AddClaim(new Claim(Saml2ClaimTypes.SessionIndex, session.SessionIndex));
                 if (principal.Claims.Any(c => c.Type == ClaimTypes.NameIdentifier))
                 {
                     identity.AddClaim(new Claim(ClaimTypes.Name, principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier).Value));
@@ -419,11 +424,6 @@ namespace Saml2Core
 
                 await Response.WriteAsync(content);
             }
-            //else
-            //{
-            //    // sso with artifact binding - send to
-            //    // Idp signOn artifact endpoint with SAMLArt as parameter
-            //}
         }
 
         //response from Idp based on previous logout request
@@ -433,6 +433,7 @@ namespace Saml2Core
             AuthenticationProperties properties = null;
             ResponseType responseToken;
 
+            //redirect
             if (HttpMethods.IsGet(Request.Method))
             {
                 var query = Request.Query;
@@ -444,6 +445,7 @@ namespace Saml2Core
             }
             // assumption: if the ContentType is "application/x-www-form-urlencoded"
             // it should be safe to read as it is small.
+            //post
             else if (HttpMethods.IsPost(Request.Method)
               && !string.IsNullOrEmpty(Request.ContentType)
               // May have media/type; charset=utf-8, allow partial match.
@@ -581,13 +583,22 @@ namespace Saml2Core
             //get session index value
             var sessionIndex = Context.User.FindFirst(Saml2ClaimTypes.SessionIndex).Value;
 
+            //get nameId value
+            if (string.IsNullOrEmpty(Options.NameId?.Value))
+            {
+                Options.NameId = new NameId
+                {
+                    Value = Context.User.FindFirst(ClaimTypes.NameIdentifier).Value
+                };
+            }
+
             //create saml cookie session to check against then delete it
             //According to the SAML specification, the SAML response returned by the IdP
             //should have an InResponseTo field that matches the authn request ID. This ties the SAML
             //response to the authn request. The logout request ID is saved in the SAML session
             //state so it can be checked against the InResponseTo.
 
-            //cleanup and remove existing saml cookies            
+            //cleanup and remove existing saml cookies
             Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
 
             //create cookie 
@@ -597,17 +608,140 @@ namespace Saml2Core
             Response.Cookies.Append(Options.Saml2CoreCookie.Name, logoutRequestId.Base64Encode(),
                 Options.Saml2CoreCookie.Build(Context));
 
-            var samlRequest = saml2Message.CreateLogoutRequest(Options, logoutRequestId, sessionIndex, relayState);
+            //if (Options.LogoutMethod == Saml2LogoutBehaviour.SOAP)
+            //{
+            //    var artifactResolveRequest = new Saml2Message()
+            //    .CreateArtifactResolutionLogoutRequest(Options, logoutRequestId, sessionIndex,
+            //    true);
 
+            //    var requestMessage = new HttpRequestMessage(HttpMethod.Post,
+            //   Saml2Message.GetIdpDescriptor(Options.Configuration).ArtifactResolutionServices
+            //   .FirstOrDefault().Location);
+
+            //    requestMessage.Headers.Add(Parameters.SOAPAction, Artifacts.SoapAction);
+            //    requestMessage.Content = new StringContent(artifactResolveRequest, Encoding.UTF8, "text/xml");
+            //    requestMessage.Version = new Version(2, 0);
+
+            //    //send soap message
+            //    var responseMessage = await Backchannel.SendAsync(requestMessage,
+            //        HttpCompletionOption.ResponseHeadersRead, Context.RequestAborted);
+
+            //    var contentMediaType = responseMessage.Content.Headers.ContentType?.MediaType;
+            //    if (string.IsNullOrEmpty(contentMediaType))
+            //    {
+            //        Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type header is missing.");
+            //    }
+            //    else if (!string.Equals(contentMediaType, "text/xml", StringComparison.OrdinalIgnoreCase))
+            //    {
+            //        Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type {responseMessage.Content.Headers.ContentType}.");
+            //    }
+
+            //    try
+            //    {
+            //        var responseContent = await responseMessage.Content.ReadAsStringAsync();
+            //        saml2Message.ArtifactResponse = responseContent;
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        throw new Saml2Exception($"Failed to parse token response body as JSON. Status Code: {(int)responseMessage.StatusCode}. Content-Type: {responseMessage.Content.Headers.ContentType}", ex);
+            //    }
+
+            //    if (!responseMessage.IsSuccessStatusCode)
+            //    {
+            //        throw new Saml2Exception(responseMessage.ReasonPhrase);
+            //    }
+            //    var responseToken = saml2Message.GetArtifactResponseToken(saml2Message.ArtifactResponse, Options);
+
+            //    //since this is a solicited login (sent from challenge)
+            //    // we must compare the incoming 'InResponseTo' what we have in the cookie
+            //    var requestCookies = Request.Cookies;
+            //    var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CoreCookie.Name))];
+
+            //    //validate it is not a replay attack by comparing inResponseTo values
+            //    saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
+
+            //    //cleanup and remove existing saml cookies
+            //    //no need for it since we checked the inResponseId values
+            //    Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
+
+            //    //check what the Idp response is -if it was successful or not
+            //    saml2Message.CheckStatus(responseToken);
+
+            //    if (Context.User.Identity.IsAuthenticated)
+            //    {
+            //        await Context.SignOutAsync(Options.SignOutScheme, properties);
+            //    }
+
+            //    var redirectUrl = !string.IsNullOrEmpty(properties.RedirectUri) ?
+            //        properties.RedirectUri : Options.DefaultRedirectUrl.ToString();
+            //    Response.Redirect(redirectUrl, true);
+            //}
+            if (Options.LogoutMethod == Saml2LogoutBehaviour.Artifact)
+            {
+                var samlArtRequest = saml2Message.CreateArtifactLogoutRequest2(Options, relayState);
+                Response.Redirect(samlArtRequest);
+
+                //var samlArtRequest = saml2Message.CreateArtifactLogoutRequest(Options, logoutRequestId, relayState);
+
+                ////use the index that was in the returned parsed artifact object
+                //var requestMessage = new HttpRequestMessage(HttpMethod.Post,
+                //    Saml2Message.GetIdpDescriptor(Options.Configuration).ArtifactResolutionServices
+                //    .FirstOrDefault().Location);
+
+
+                //requestMessage.Headers.Add(Parameters.SOAPAction, Artifacts.SoapAction);
+                //requestMessage.Content = new StringContent(samlArtRequest, Encoding.UTF8, "text/xml");
+                //requestMessage.Version = new Version(2, 0);
+
+                ////send soap message
+                //var responseMessage = await Backchannel.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, Context.RequestAborted);
+
+                //var contentMediaType = responseMessage.Content.Headers.ContentType?.MediaType;
+                //if (string.IsNullOrEmpty(contentMediaType))
+                //{
+                //    Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type header is missing.");
+                //}
+                //else if (!string.Equals(contentMediaType, "text/xml", StringComparison.OrdinalIgnoreCase))
+                //{
+                //    Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type {responseMessage.Content.Headers.ContentType}.");
+                //}
+
+                //try
+                //{
+                //    var responseContent = await responseMessage.Content.ReadAsStringAsync();
+                //    saml2Message.ArtifactResponse = responseContent;
+                //}
+                //catch (Exception ex)
+                //{
+                //    throw new Saml2Exception($"Failed to parse token response body as JSON. Status Code: {(int)responseMessage.StatusCode}. Content-Type: {responseMessage.Content.Headers.ContentType}", ex);
+                //}
+
+                //if (!responseMessage.IsSuccessStatusCode)
+                //{
+                //    throw new Saml2Exception(responseMessage.ReasonPhrase);
+                //}
+                //saml2Message.GetArtifactResponseToken(saml2Message.ArtifactResponse, Options);
+
+                ////var content = samlArtRequest;
+                ////var buffer = Encoding.UTF8.GetBytes(samlArtRequest);
+
+                ////Response.ContentLength = buffer.Length;
+                ////Response.ContentType = "text/html;charset=iso-8859-1";
+                //////call idp
+                ////Response.Redirect(samlArtRequest);
+                ////await Response.WriteAsync(samlArtRequest);              
+            }
             //if logout is redirect
             if (Options.LogoutMethod == Saml2LogoutBehaviour.RedirectGet)
             {
+                var samlRequest = saml2Message.CreateLogoutRequest(Options, logoutRequestId, sessionIndex, relayState);
                 //call idp
                 Response.Redirect(samlRequest);
             }
             //if logout is post 
             else if (Options.LogoutMethod == Saml2LogoutBehaviour.FormPost)
             {
+                var samlRequest = saml2Message.CreateLogoutRequest(Options, logoutRequestId, sessionIndex, relayState);
                 var content = samlRequest;
                 var buffer = Encoding.UTF8.GetBytes(content);
 
@@ -617,6 +751,7 @@ namespace Saml2Core
                 await Response.WriteAsync(content);
             }
         }
+
 
         //idp sending a fan logout request
         protected virtual async Task<bool> HandleRemoteSignOutAsync()
@@ -639,7 +774,8 @@ namespace Saml2Core
             //we will need this to create the same session cookie as well
             var authnRequestId2 = UniqueId.CreateRandomId();
 
-            var artifactResolveRequest = new Saml2Message().CreateArtifactResolutionRequest(Options, authnRequestId2, saml2Message.SamlArt);
+            var artifactResolveRequest = new Saml2Message()
+                .CreateArtifactResolutionSigninRequest(Options, authnRequestId2, saml2Message.SamlArt);
 
             requestMessage.Headers.Add(Parameters.SOAPAction, Artifacts.SoapAction);
             requestMessage.Content = new StringContent(artifactResolveRequest, Encoding.UTF8, "text/xml");

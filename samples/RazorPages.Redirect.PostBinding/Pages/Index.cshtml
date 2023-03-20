@@ -1,0 +1,28 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    @if (User.Identity.IsAuthenticated)
+    {
+        <h1 class="display-4">Welcome @User.Identity.Name!</h1>
+    }
+</div>
+
+
+<table>
+    <tr>
+        <th>Authentication Method:</th>
+        <td>HTTP-Redirect Binding</td>
+    </tr>
+    <tr>
+        <th>Protocol Binding:</th>
+        <td>HTTP-Post Binding</td>
+    </tr>
+    <tr>
+        <th>Logout Method:</th>
+        <td>HTTP-Post Binding</td>
+    </tr>
+</table>

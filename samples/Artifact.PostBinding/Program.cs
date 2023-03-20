@@ -6,7 +6,6 @@ using Microsoft.Extensions.Hosting;
 using Saml.MetadataBuilder;
 using Saml2Core;
 using System;
-using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
@@ -31,30 +30,33 @@ public class Program
         .AddSaml2(options =>
         {
             options.AuthenticationScheme = Saml2Defaults.AuthenticationScheme;
-            options.EntityId = "dev.govalerts.la.gov";
             options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             options.MetadataAddress = "https://adfs2.la.gov/federationmetadata/2007-06/federationmetadata.xml";
             options.ForceAuthn = true;
+            options.VerifySignatureOnly = false;
+
+            //must match with metadata file
+            options.EntityId = "dev.govalerts.la.gov";
             options.RequireMessageSigned = false;
             options.WantAssertionsSigned = true;
             options.AuthenticationRequestSigned = true;
-            options.VerifySignatureOnly = false;
 
+            //signin
             options.AuthenticationMethod = Saml2AuthenticationBehaviour.FormPost; //front channel
             options.RequestedAuthnContext = RequestedAuthnContextTypes.FormsAuthentication();
             options.ResponseProtocolBinding = Saml2ResponseProtocolBinding.Artifact; //send back artifact
             options.AssertionConsumerServiceUrl = new Uri("https://localhost:5001/saml2-artifact");
 
-            //new
-            options.LogoutMethod = Saml2LogoutBehaviour.RedirectGet;
+            //logout
+            options.LogoutMethod = Saml2LogoutBehaviour.FormPost;
             options.LogoutRequestSigned = true;
             options.SignOutPath = new PathString("/signedout");
 
-            options.ValidateArtifact= true;
+            options.ValidateArtifact = true;
             options.ValidIssuers = new string[] { "dinah.la.gov" };
             //options.AssertionConsumerServiceIndex = 2;
             options.CallbackPath = new PathString("/saml2-artifact");
-           
+
 
             if (environment.IsDevelopment())
             {

@@ -130,7 +130,7 @@ namespace Saml2Core
 
         #endregion
 
-        #region Method
+        #region Methods
         public string CreateSignInRequest(Saml2Options options,
             string authnRequestId, string relayState)
         {
@@ -248,10 +248,10 @@ namespace Saml2Core
                 IssueInstant = DateTime.UtcNow,
                 Item = new NameIDType()
                 {
-                    Format = options.NameId.Format,
-                    NameQualifier = options.NameId.NameQualifier,
-                    SPProvidedID = options.NameId.SpProvidedId,
-                    SPNameQualifier = options.NameId.NameQualifier,
+                    Format = options.NameId?.Format,
+                    NameQualifier = options.NameId?.NameQualifier,
+                    SPProvidedID = options.NameId?.SpProvidedId,
+                    SPNameQualifier = options.NameId?.NameQualifier,
                     Value = options.NameId.Value
                 }
             };
@@ -314,14 +314,132 @@ namespace Saml2Core
             }
         }
 
-        public string CreateArtifactResolutionRequest(Saml2Options options, string authnRequestId2, string artifact)
+        public string CreateArtifactLogoutRequest(Saml2Options options, string logoutRequestId,
+           string relayState)
         {
             var idpConfiguration = GetIdpDescriptor(options.Configuration);
-            var idpSingleServiceArtifactEndpoints = idpConfiguration.ArtifactResolutionServices;
+
+            var destination = GetIdpDescriptor(options.Configuration).ArtifactResolutionServices
+                .FirstOrDefault().Location;
+            //GetSingleLogoutEndpoint(idpSingleServiceSingleLogoutEndpoints, options.LogoutMethod,
+            // options.IdpSingleLogoutServiceLocationIndex.ToString());
+
+            var saml2Message = new Saml2Message()
+            {
+                IssuerAddress = destination
+            };
+
+            var artifact = saml2Message.BuildArtifact(options.Configuration.EntityID, 0);
+
+            var artifactResolveRequest = new ArtifactResolveType
+            {
+                ID = logoutRequestId,
+                Issuer = new NameIDType()
+                {
+                    Value = options.EntityId //sp entity id
+                },
+                Version = Saml2Constants.Version,
+                Artifact = artifact,
+                //Destination = destination,
+                IssueInstant = DateTime.UtcNow
+            };
+            var artifactResolveRequestXmlDoc = Serialize<ArtifactResolveType>(artifactResolveRequest);
+
+            //artifact resolution MUST be signed
+            if (options.SigningCertificate == null)
+            {
+                throw new Saml2Exception("Signature Certificate cannot be null when using HTTP-SOAP binding");
+            }
+            var signedLogoutRequestXmlDoc = artifactResolveRequestXmlDoc.AddXmlSignature(options.SigningCertificate,
+                Elements.Issuer, Namespaces.Assertion, $"#{logoutRequestId}");
+
+            //put in SOAP message here
+            var artifactResolveSoapMessageRequest = new Envelope
+            {
+                Body = new Body
+                {
+                    Item = new XmlElement[]
+                    {
+                           SerializeToElement(artifactResolveRequestXmlDoc)
+                   }
+                }
+            };
+
+            var envelopeXmlDoc = Serialize(artifactResolveSoapMessageRequest);
+
+            saml2Message.ArtifactResolve = envelopeXmlDoc.OuterXml;
+            return saml2Message.ArtifactResolve;
+        }
+
+        public string CreateArtifactLogoutRequest2(Saml2Options options, string relayState)
+        {
+            var idpConfiguration = GetIdpDescriptor(options.Configuration);
+            var idpSingleServiceSingleLogoutEndpoints = idpConfiguration.SingleLogoutServices;
+            var destination = GetSingleLogoutEndpoint(idpSingleServiceSingleLogoutEndpoints, options.LogoutMethod,
+                options.IdpSingleLogoutServiceLocationIndex.ToString());
+
+            var saml2Message = new Saml2Message()
+            {
+                IssuerAddress = destination
+            };
+            var artifact = saml2Message.BuildArtifact(options.EntityId, 0);
+            saml2Message.SamlArt = artifact.UrlEncode();
+
+            //check if there is a signature certificate
+            //if (options.SigningCertificate == null && options.LogoutRequestSigned)
+            //{
+            //    throw new Saml2Exception("Missing signing certificate. Either add a signing certitifcatre or change the `AuthenticationRequestSigned` to `false`.");
+            //}
+
+            ////if post method and needs signature then we need to ign the entire xml
+            //if (options.LogoutMethod == Saml2LogoutBehaviour.FormPost)
+            //{
+            //    if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
+            //    {
+            //        var signedAuthnRequestXmlDoc = authnRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
+            //            Namespaces.Assertion, $"#{authnRequestId}");
+
+            //        saml2Message.SamlRequest = System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedAuthnRequestXmlDoc.OuterXml));
+            //        saml2Message.RelayState = relayState.DeflateEncode();//.UrlEncode();
+            //    }
+            //    return saml2Message.BuildFormPost();
+            //}
+            //else
+            //{
+            //redirect binding
+
+            //if there is a certificate to add a query signature parameter to the authnrequest
+            //if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
+            //{                    
+            //relay state
+            //saml2Message.RelayState = relayState.DeflateEncode().UrlEncode();
+
+            //(var key, var signatureMethod, var keyName) =
+            //    XmlDocumentExtensions.SetSignatureAlgorithm(options.SigningCertificate);
+
+            //    //get signAlg
+            //    saml2Message.SigAlg = GetQuerySignAlg(signatureMethod);
+
+            //    //get signature
+            //    saml2Message.Signature = GetQuerySignature(key, saml2Message.BuildRedirectUrl(), options.SigningCertificateHashAlgorithmName);
+            //}
+            return saml2Message.BuildRedirectUrl();
+            //}
+        }
 
 
 
-            var issuer = idpSingleServiceArtifactEndpoints.FirstOrDefault(s => s.Binding == ProtocolBindings.HTTP_SOAP).Location;
+        public string CreateArtifactResolutionSigninRequest(Saml2Options options,
+            string authnRequestId2, string artifact)
+        {
+            var idpConfiguration = GetIdpDescriptor(options.Configuration);
+
+            var artifactValue = Saml2Message.GetArtifact(artifact);
+            var arsIndex = (ushort)artifactValue.EndpointIndex;
+
+            //use the index that was in the returned parsed artifact object
+            var destination = GetIdpDescriptor(options.Configuration).ArtifactResolutionServices
+                .FirstOrDefault(x => x.Index == arsIndex).Location;
 
             var artifactResolveRequest = new ArtifactResolveType
             {
@@ -332,7 +450,7 @@ namespace Saml2Core
                 },
                 Version = Saml2Constants.Version,
                 Artifact = artifact,
-                Destination = issuer,
+                Destination = destination,
                 IssueInstant = DateTime.UtcNow
             };
 
@@ -340,7 +458,7 @@ namespace Saml2Core
 
             var saml2Message = new Saml2Message()
             {
-                IssuerAddress = issuer
+                IssuerAddress = destination
             };
 
             if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact)
@@ -376,6 +494,77 @@ namespace Saml2Core
             saml2Message.ArtifactResolve = envelopeXmlDoc.OuterXml;
             return saml2Message.ArtifactResolve;
         }
+
+        //public string CreateArtifactResolutionLogoutRequest(Saml2Options options,
+        //    string logoutRequestId, string sessionIndex, bool forcedSignout = false)
+        //{
+        //    var idpConfiguration = GetIdpDescriptor(options.Configuration);
+        //    var idpSingleServiceArtifactEndpoints = idpConfiguration.SingleLogoutServices;
+
+        //    //if (options.LogoutMethod == Saml2LogoutBehaviour.SOAP)
+        //    //{
+        //    //    if (idpConfiguration.ArtifactResolutionServices.Count() == 0)
+        //    //    {
+        //    //        throw new Saml2Exception("The identity provider does not support 'Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.");
+        //    //    }
+        //    //}
+
+        //    var destination = idpSingleServiceArtifactEndpoints[0].Location;
+
+        //    var logoutRequest = new LogoutRequestType()
+        //    {
+        //        ID = logoutRequestId,
+        //        Issuer = new NameIDType()
+        //        {
+        //            Value = options.EntityId
+        //        },
+        //        Version = Saml2Constants.Version,
+        //        Reason = (forcedSignout == true ? Saml2Constants.Reasons.User : Saml2Constants.Reasons.Admin),
+        //        SessionIndex = new string[] { sessionIndex },
+        //        Destination = destination,
+        //        IssueInstant = DateTime.UtcNow,
+        //        Item = new NameIDType()
+        //        {
+        //            Format = options.NameId.Format,
+        //            NameQualifier = options.NameId.NameQualifier,
+        //            SPProvidedID = options.NameId.SpProvidedId,
+        //            SPNameQualifier = options.NameId.NameQualifier,
+        //            Value = options.NameId.Value
+        //        }
+        //    };
+
+        //    var artifactResolveRequestXmlDoc = Serialize<LogoutRequestType>(logoutRequest);
+
+        //    var saml2Message = new Saml2Message()
+        //    {
+        //        IssuerAddress = destination
+        //    };
+
+        //    //artifact resolution MUST be signed
+        //    //if (options.SigningCertificate == null)
+        //    //{
+        //    //    throw new Saml2Exception("Signature Certificate cannot be null when using HTTP-SOAP binding");
+        //    //}
+        //    //var signedLogoutRequestXmlDoc = artifactResolveRequestXmlDoc.AddXmlSignature(options.SigningCertificate,
+        //    //    Elements.Issuer, Namespaces.Assertion, $"#{logoutRequestId}");
+
+        //    //put in SOAP message here
+        //    var artifactResolveSoapMessageRequest = new Envelope
+        //    {
+        //        Body = new Body
+        //        {
+        //            Item = new XmlElement[]
+        //            {
+        //               SerializeToElement(artifactResolveRequestXmlDoc)
+        //           }
+        //        }
+        //    };
+
+        //    var envelopeXmlDoc = Serialize(artifactResolveSoapMessageRequest);
+
+        //    saml2Message.ArtifactResolve = envelopeXmlDoc.OuterXml;
+        //    return saml2Message.ArtifactResolve;
+        //}
         public virtual string GetToken(ResponseType responseType, X509Certificate2 encryptingCertificate2 = null)
         {
             if (encryptingCertificate2 != null)
@@ -479,9 +668,9 @@ namespace Saml2Core
                     throw new Saml2Exception("Response signature is not valid.");
                 }
             }
-            var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseString,
-                responseType, Saml2Constants.Namespaces.Protocol, false);
-            return samlResponseType;
+
+            return DeSerializeToClass<ResponseType>(samlResponseString,
+           responseType, Saml2Constants.Namespaces.Protocol, false);
         }
         public ResponseType GetArtifactResponseToken(string envelope, Saml2Options options)
         {
@@ -581,7 +770,7 @@ namespace Saml2Core
         #region Public Static 
         public static IDPSSODescriptor GetIdpDescriptor(EntityDescriptor configuration)
         {
-            var idpConfiguration = (configuration.Items
+            var idpConfiguration = (configuration.ObjectItems
                    .FirstOrDefault(i => i.GetType() == typeof(IDPSSODescriptor)) as IDPSSODescriptor);
 
             return idpConfiguration;
@@ -819,7 +1008,7 @@ namespace Saml2Core
             return artifact;
         }
 
-        public static string BuildArtifact(string sourceIdValue, short endpointIndexValue)
+        public string BuildArtifact(string sourceIdValue, short endpointIndexValue)
         {
             if (string.IsNullOrEmpty(sourceIdValue))
                 throw LogHelper.LogArgumentNullException(nameof(sourceIdValue));
@@ -833,7 +1022,7 @@ namespace Saml2Core
         {
             var idpDescriptor = GetIdpDescriptor(options.Configuration);
 
-            var ars = idpDescriptor.ArtifactResolutionServices.Select(a => a.Index).ToArray();
+            var ars = idpDescriptor.ArtifactResolutionServices.Select(a => (ushort)a.Index).ToArray();
             var validIssuers = options.ValidIssuers.Prepend(options.Configuration.EntityID).ToArray();
 
             return ArtifactHelpers.IsValid(artifactString, ars, validIssuers);
@@ -880,7 +1069,6 @@ namespace Saml2Core
                  && s.Location == idpSsoEndpointLocation).Location;
             }
         }
-
         private static string GetSingleLogoutEndpoint(Endpoint[] singleLogoutEndpoints, Saml2LogoutBehaviour method,
            string idpSloEndpointLocation)
         {
@@ -906,9 +1094,6 @@ namespace Saml2Core
                  && s.Location == idpSloEndpointLocation).Location;
             }
         }
-
-
-
         #endregion
     }
 }

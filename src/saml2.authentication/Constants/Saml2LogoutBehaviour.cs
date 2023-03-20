@@ -36,7 +36,7 @@ namespace Saml2Core
         /// theSaml2 provider using a POST request.
         /// </summary>
         FormPost = 1,
-        Artififact = 2,
+        Artifact = 2,
         SOAP = 3
     }
 }
