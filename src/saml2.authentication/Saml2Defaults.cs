@@ -31,7 +31,7 @@ namespace Saml2Core
         /// <summary>
         /// The display name
         /// </summary>
-        public const string DisplayName = "Saml2";        
+        public const string DisplayName = "Saml2";
         /// <summary>
         /// Constant used to identify userstate inside AuthenticationProperties 
         /// that have been serialized in the 'state' parameter.

@@ -22,9 +22,19 @@
 
 namespace Saml2Core
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public enum Saml2ResponseProtocolBinding
     {
+        /// <summary>
+        /// The Idp responds with a 
+        /// form post
+        /// </summary>
         FormPost = 0,
+        /// <summary>
+        /// The Idp responds with an artifact
+        /// </summary>
         Artifact = 1
     }
 }

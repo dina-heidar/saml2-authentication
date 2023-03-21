@@ -39,7 +39,7 @@ namespace Saml2Core
             HttpContext context,
             AuthenticationScheme scheme,
             Saml2Options options,
-            AuthenticationProperties? properties)
+            AuthenticationProperties properties)
             : base(context, scheme, options, properties) { }
 
         /// <summary>

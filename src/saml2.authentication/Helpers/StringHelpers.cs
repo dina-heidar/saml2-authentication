@@ -122,6 +122,6 @@ namespace Saml2Core
                 stream.Close();
             }
             return result.ToString();
-        }       
+        }
     }
 }

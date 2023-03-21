@@ -44,6 +44,6 @@ namespace Saml2Core
         /// Creates an artifact and send it the Idp artifact endpoint
         /// using GET request.
         /// </summary>
-        Artifact = 3
+        //Artifact = 2
     }
 }

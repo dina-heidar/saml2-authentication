@@ -21,7 +21,7 @@
 //
 
 using System;
-using System.Linq;
+using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -30,9 +30,11 @@ using System.Threading;
 using MetadataBuilder.Schema.Metadata;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols;
 using Saml.MetadataBuilder;
+using Saml2Core.Metadata;
 
 namespace Saml2Core
 {
@@ -41,14 +43,20 @@ namespace Saml2Core
         private readonly IDocumentRetriever _idoc;
         private readonly IDataProtectionProvider _dp;
         private readonly IMetadataMapper<EntityDescriptorType, EntityDescriptor> _mapper;
+        private readonly IMetadataWriter _writer;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public Saml2PostConfigureOptions(IDataProtectionProvider dataProtection,
             IDocumentRetriever idoc,
-            IMetadataMapper<EntityDescriptorType, EntityDescriptor> mapper)
+            IMetadataMapper<EntityDescriptorType, EntityDescriptor> mapper,
+            IMetadataWriter writer,
+            IHttpContextAccessor httpContextAccessor)
         {
             _dp = dataProtection;
             _idoc = idoc;
             _mapper = mapper;
+            _writer = writer;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         /// <summary>
@@ -99,7 +107,6 @@ namespace Saml2Core
             if (options.AssertionConsumerServiceIndex != null)
             {
                 options.AssertionConsumerServiceUrl = null;
-                options.ResponseProtocolBinding = null;
             }
 
             if (options.StringDataFormat == null)
@@ -167,8 +174,131 @@ namespace Saml2Core
                     if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact && options.SigningCertificate == null)
                     {
                         throw new Saml2Exception("Signing certifactes are required when using 'HTTP-Artifact' binding protocol");
-                    }                   
+                    }
                 }
+            }
+
+            //create metadata.xml if set to true
+            if (options.CreateMetadataFile)
+            {
+                //check if the metadata.xml already exists
+                string[] xmlList = Directory.GetFiles(options.DefaultMetadataFolderLocation, "*.xml");
+
+                if (xmlList.Length > 0)
+                {
+                    // the file exists and will
+                    // need to be manually deleted first
+                    return;
+                }
+                else
+                {
+                    var bsm = new BasicSpMetadata
+                    {
+                        Signature = options.Metadata.Signature,
+                        ContactPersons = new ContactPerson[]
+                        {
+                            new ContactPerson
+                            {
+                                Company =  options.Metadata.ContactPersons.Company,
+                                ContactType =  options.Metadata.ContactPersons.ContactType,
+                                EmailAddresses = new[]{  options.Metadata.ContactPersons.EmailAddress },
+                                TelephoneNumbers = new []{ options.Metadata.ContactPersons.TelephoneNumber},
+                                GivenName =  options.Metadata.ContactPersons.GivenName,
+                                Surname= options.Metadata.ContactPersons.Surname
+                            }
+                        },
+                        Organization = new Organization
+                        {
+                            OrganizationDisplayName = new LocalizedName[] { new LocalizedName { Language = options.Metadata.Organization.Language,
+                                Value = options.Metadata.Organization.OrganizationDisplayName } },
+                            OrganizationName = new LocalizedName[] { new LocalizedName { Language = options.Metadata.Organization.Language,
+                                Value = options.Metadata.Organization.OrganizationName } },
+                            OrganizationURL = new[] { new LocalizedUri { Language = options.Metadata.Organization.Language,
+                                Uri = options.Metadata.Organization.OrganizationURL } }
+                        },
+                        Extensions = new Extension
+                        {
+                            Any = new object[]
+                           {
+                               new UiInfo
+                               {
+                                   InformationURL = new LocalizedUri { Language = options.Metadata.UiInfo.Language,
+                                       Uri = options.Metadata.UiInfo.InformationURL },
+                                   DisplayName = new LocalizedName { Language = options.Metadata.UiInfo.Language,
+                                       Value = options.Metadata.UiInfo.DisplayName },
+                                   Description = new LocalizedName { Language = options.Metadata.UiInfo.Language,
+                                       Value = options.Metadata.UiInfo.Description },
+                                   PrivacyStatementURL = new LocalizedUri { Language = options.Metadata.UiInfo.Language,
+                                       Uri = options.Metadata.UiInfo.PrivacyStatementURL },
+                                   Logo = new Logo
+                                   {
+                                       Height = options.Metadata.UiInfo.LogoHeight,
+                                       Width = options.Metadata.UiInfo.LogoWidth,
+                                       Value = options.Metadata.UiInfo.LogoUriValue,
+                                       Language = options.Metadata.UiInfo.Language
+                                   },
+                                   Keywords = new Keyword
+                                   {
+                                      Language=options.Metadata.UiInfo.Language,
+                                      Values= options.Metadata.UiInfo.KeywordValues
+                                   },
+                               }
+                           }
+                        },
+
+                        //internals
+                        EntityID = options.EntityId,
+                        NameIdFormat = options.NameIdPolicy.Format,
+                        AuthnRequestsSigned = options.AuthenticationRequestSigned,
+                        WantAssertionsSigned = options.WantAssertionsSigned,
+                        SigningCertificate = options.SigningCertificate,
+                        EncryptingCertificate = new EncryptingCertificate
+                        {
+                            EncryptionCertificate = options.EncryptingCertificate
+                        },
+                        AssertionConsumerService = GetAssertionConsumerService(options.ResponseProtocolBinding, options.CallbackPath),
+                        SingleLogoutServiceEndpoint = GetSingleLogoutServiceEndpoint(options.ResponseLogoutBinding, options.SignOutPath),
+                    };
+
+                    var xmlDoc = _writer.Output(bsm);
+                    xmlDoc.Save(System.IO.Path.Combine(options.DefaultMetadataFolderLocation, options.DefaultMetadataFileName + ".xml"));
+                }
+            }
+        }
+
+        private IndexedEndpoint GetAssertionConsumerService(Saml2ResponseProtocolBinding responseProtocolBinding,
+            PathString callbackPath)
+        {
+            var request = _httpContextAccessor.HttpContext.Request;
+            var url = request.Scheme + "://" + request.Host.Value + callbackPath;
+
+            // if post
+            if (responseProtocolBinding == Saml2ResponseProtocolBinding.FormPost)
+            {
+                return AssertionConsumerServiceExtensions.Post.Url(url, 0, true);
+            }
+            //if redirect
+            else
+            {
+                return AssertionConsumerServiceExtensions.Redirect.Url(url, 0, true);
+            }
+        }
+
+        private IndexedEndpoint GetSingleLogoutServiceEndpoint(Saml2ResponseLogoutBinding responseLogoutBinding,
+            PathString signoutPath)
+        {
+            var request = _httpContextAccessor.HttpContext.Request;
+            var url = request.Scheme + "://" + request.Host.Value + signoutPath;
+
+            // if post
+            if (responseLogoutBinding == Saml2ResponseLogoutBinding.FormPost)
+            {
+                return SingleLogoutServiceTypes.Post.Url(url, 0, true);
+            }
+            //if redirect
+            else
+            {
+                return SingleLogoutServiceTypes.Redirect.Url(url, 0, true);
             }
         }
 

@@ -52,14 +52,17 @@ namespace Saml2Core
         public Saml2Message ProtocolMessage { get; set; } = default!;
 
         /// <summary>
-        /// Gets or sets the <see cref="Saml2SecurityTokenHandler"/> that was received in the artifact resolution response, if any.
+        /// Gets or sets the <see cref="Saml2SecurityTokenHandler" /> that was received in the artifact resolution response, if any.
         /// </summary>
-        public Saml2SecurityTokenHandler? saml2SecurityTokenHandler { get; set; }
+        /// <value>
+        /// The saml2 security token handler.
+        /// </value>
+        public Saml2SecurityTokenHandler saml2SecurityTokenHandler { get; set; }
 
         /// <summary>
         /// The request that will be sent to the artifact resolution endpoint.
         /// </summary>
-        public Saml2Message? ArtifactResolutionRequest { get; set; }
+        public Saml2Message ArtifactResolutionRequest { get; set; }
 
         /// <summary>
         /// The configured communication channel to the identity provider 
@@ -68,7 +71,13 @@ namespace Saml2Core
         public HttpClient Backchannel { get; internal set; } = default!;
 
 
-        public Saml2Message? ArtifactResolutionResponse { get; set; }
+        /// <summary>
+        /// Gets or sets the artifact resolution response.
+        /// </summary>
+        /// <value>
+        /// The artifact resolution response.
+        /// </value>
+        public Saml2Message ArtifactResolutionResponse { get; set; }
 
 
         public bool HandledArtifactResolveRedemption => ArtifactResolutionResponse != null;

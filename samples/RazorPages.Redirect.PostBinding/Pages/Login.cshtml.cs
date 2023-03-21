@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace Blazor.Artifact.PostBinding.Pages;
+namespace RazorPages.Redirect.PostBinding.Pages;
 
 public class LoginModel : PageModel
 {

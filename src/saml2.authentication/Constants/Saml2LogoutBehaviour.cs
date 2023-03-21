@@ -23,6 +23,9 @@
 
 namespace Saml2Core
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public enum Saml2LogoutBehaviour
     {
         /// <summary>
@@ -35,8 +38,17 @@ namespace Saml2Core
         /// Emits an HTML form to redirect the user agent to
         /// theSaml2 provider using a POST request.
         /// </summary>
-        FormPost = 1,
-        Artifact = 2,
-        SOAP = 3
+        FormPost = 1
+
+        /// <summary>
+        /// Creates an artifact and send it the Idp artifact endpoint
+        /// using GET request.
+        /// </summary>
+        //Artifact = 2,
+
+        /// <summary>
+        /// Creates an SOAP request and send it the Idp.
+        /// </summary>
+        //SOAP = 3
     }
 }

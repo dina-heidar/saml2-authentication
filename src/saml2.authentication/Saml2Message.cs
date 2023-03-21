@@ -22,6 +22,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -131,6 +132,18 @@ namespace Saml2Core
         #endregion
 
         #region Methods
+        /// <summary>
+        /// Creates the sign in request.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="authnRequestId">The authn request identifier.</param>
+        /// <param name="relayState">State of the relay.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">
+        /// The identity provider does not support 'HTTP-Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.
+        /// or
+        /// Missing signing certificate. Either add a signing certitifcatre or change the `AuthenticationRequestSigned` to `false`.
+        /// </exception>
         public string CreateSignInRequest(Saml2Options options,
             string authnRequestId, string relayState)
         {
@@ -163,7 +176,7 @@ namespace Saml2Core
                 AssertionConsumerServiceIndex = (options.AssertionConsumerServiceIndex != null ? options.AssertionConsumerServiceIndex.Value : (ushort)0),
                 AssertionConsumerServiceIndexSpecified = options.AssertionConsumerServiceIndex.HasValue,
                 AssertionConsumerServiceURL = options.AssertionConsumerServiceUrl?.AbsoluteUri,
-                ProtocolBinding = (options.ResponseProtocolBinding != null ? GetProtocolBinding((Saml2ResponseProtocolBinding)options.ResponseProtocolBinding) : null),
+                ProtocolBinding = GetProtocolBinding((Saml2ResponseProtocolBinding)options.ResponseProtocolBinding),
                 IssueInstant = DateTime.UtcNow,
             };
 
@@ -225,6 +238,20 @@ namespace Saml2Core
             }
         }
 
+        /// <summary>
+        /// Creates the logout request.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="logoutRequestId">The logout request identifier.</param>
+        /// <param name="sessionIndex">Index of the session.</param>
+        /// <param name="relayState">State of the relay.</param>
+        /// <param name="forcedSignout">if set to <c>true</c> [forced signout].</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">
+        /// The identity provider does not support 'HTTP-Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.
+        /// or
+        /// Missing signing certificate. Either add a signing certitifcatre or change the `AuthenticationRequestSigned` to `false`.
+        /// </exception>
         public string CreateLogoutRequest(Saml2Options options,
             string logoutRequestId, string sessionIndex,
             string relayState, bool forcedSignout = false)
@@ -294,10 +321,10 @@ namespace Saml2Core
             else
             {
                 //redirect binding
+                saml2Message.SamlRequest = (logoutRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
                 //if there is a certificate to add a query signature parameter to the logout nrequest
                 if (options.SigningCertificate != null && options.LogoutRequestSigned)
                 {
-                    saml2Message.SamlRequest = (logoutRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
                     //relay state
                     saml2Message.RelayState = relayState.DeflateEncode().UrlEncode();
 
@@ -314,121 +341,18 @@ namespace Saml2Core
             }
         }
 
-        public string CreateArtifactLogoutRequest(Saml2Options options, string logoutRequestId,
-           string relayState)
-        {
-            var idpConfiguration = GetIdpDescriptor(options.Configuration);
-
-            var destination = GetIdpDescriptor(options.Configuration).ArtifactResolutionServices
-                .FirstOrDefault().Location;
-            //GetSingleLogoutEndpoint(idpSingleServiceSingleLogoutEndpoints, options.LogoutMethod,
-            // options.IdpSingleLogoutServiceLocationIndex.ToString());
-
-            var saml2Message = new Saml2Message()
-            {
-                IssuerAddress = destination
-            };
-
-            var artifact = saml2Message.BuildArtifact(options.Configuration.EntityID, 0);
-
-            var artifactResolveRequest = new ArtifactResolveType
-            {
-                ID = logoutRequestId,
-                Issuer = new NameIDType()
-                {
-                    Value = options.EntityId //sp entity id
-                },
-                Version = Saml2Constants.Version,
-                Artifact = artifact,
-                //Destination = destination,
-                IssueInstant = DateTime.UtcNow
-            };
-            var artifactResolveRequestXmlDoc = Serialize<ArtifactResolveType>(artifactResolveRequest);
-
-            //artifact resolution MUST be signed
-            if (options.SigningCertificate == null)
-            {
-                throw new Saml2Exception("Signature Certificate cannot be null when using HTTP-SOAP binding");
-            }
-            var signedLogoutRequestXmlDoc = artifactResolveRequestXmlDoc.AddXmlSignature(options.SigningCertificate,
-                Elements.Issuer, Namespaces.Assertion, $"#{logoutRequestId}");
-
-            //put in SOAP message here
-            var artifactResolveSoapMessageRequest = new Envelope
-            {
-                Body = new Body
-                {
-                    Item = new XmlElement[]
-                    {
-                           SerializeToElement(artifactResolveRequestXmlDoc)
-                   }
-                }
-            };
-
-            var envelopeXmlDoc = Serialize(artifactResolveSoapMessageRequest);
-
-            saml2Message.ArtifactResolve = envelopeXmlDoc.OuterXml;
-            return saml2Message.ArtifactResolve;
-        }
-
-        public string CreateArtifactLogoutRequest2(Saml2Options options, string relayState)
-        {
-            var idpConfiguration = GetIdpDescriptor(options.Configuration);
-            var idpSingleServiceSingleLogoutEndpoints = idpConfiguration.SingleLogoutServices;
-            var destination = GetSingleLogoutEndpoint(idpSingleServiceSingleLogoutEndpoints, options.LogoutMethod,
-                options.IdpSingleLogoutServiceLocationIndex.ToString());
-
-            var saml2Message = new Saml2Message()
-            {
-                IssuerAddress = destination
-            };
-            var artifact = saml2Message.BuildArtifact(options.EntityId, 0);
-            saml2Message.SamlArt = artifact.UrlEncode();
-
-            //check if there is a signature certificate
-            //if (options.SigningCertificate == null && options.LogoutRequestSigned)
-            //{
-            //    throw new Saml2Exception("Missing signing certificate. Either add a signing certitifcatre or change the `AuthenticationRequestSigned` to `false`.");
-            //}
-
-            ////if post method and needs signature then we need to ign the entire xml
-            //if (options.LogoutMethod == Saml2LogoutBehaviour.FormPost)
-            //{
-            //    if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
-            //    {
-            //        var signedAuthnRequestXmlDoc = authnRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
-            //            Namespaces.Assertion, $"#{authnRequestId}");
-
-            //        saml2Message.SamlRequest = System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedAuthnRequestXmlDoc.OuterXml));
-            //        saml2Message.RelayState = relayState.DeflateEncode();//.UrlEncode();
-            //    }
-            //    return saml2Message.BuildFormPost();
-            //}
-            //else
-            //{
-            //redirect binding
-
-            //if there is a certificate to add a query signature parameter to the authnrequest
-            //if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
-            //{                    
-            //relay state
-            //saml2Message.RelayState = relayState.DeflateEncode().UrlEncode();
-
-            //(var key, var signatureMethod, var keyName) =
-            //    XmlDocumentExtensions.SetSignatureAlgorithm(options.SigningCertificate);
-
-            //    //get signAlg
-            //    saml2Message.SigAlg = GetQuerySignAlg(signatureMethod);
-
-            //    //get signature
-            //    saml2Message.Signature = GetQuerySignature(key, saml2Message.BuildRedirectUrl(), options.SigningCertificateHashAlgorithmName);
-            //}
-            return saml2Message.BuildRedirectUrl();
-            //}
-        }
-
-
-
+        /// <summary>
+        /// Creates the artifact resolution signin request.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="authnRequestId2">The authn request id2.</param>
+        /// <param name="artifact">The artifact.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">
+        /// The identity provider does not support 'Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.
+        /// or
+        /// Signature Certificate cannot be null when using HTTP-Artifact binding
+        /// </exception>
         public string CreateArtifactResolutionSigninRequest(Saml2Options options,
             string authnRequestId2, string artifact)
         {
@@ -495,76 +419,13 @@ namespace Saml2Core
             return saml2Message.ArtifactResolve;
         }
 
-        //public string CreateArtifactResolutionLogoutRequest(Saml2Options options,
-        //    string logoutRequestId, string sessionIndex, bool forcedSignout = false)
-        //{
-        //    var idpConfiguration = GetIdpDescriptor(options.Configuration);
-        //    var idpSingleServiceArtifactEndpoints = idpConfiguration.SingleLogoutServices;
-
-        //    //if (options.LogoutMethod == Saml2LogoutBehaviour.SOAP)
-        //    //{
-        //    //    if (idpConfiguration.ArtifactResolutionServices.Count() == 0)
-        //    //    {
-        //    //        throw new Saml2Exception("The identity provider does not support 'Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.");
-        //    //    }
-        //    //}
-
-        //    var destination = idpSingleServiceArtifactEndpoints[0].Location;
-
-        //    var logoutRequest = new LogoutRequestType()
-        //    {
-        //        ID = logoutRequestId,
-        //        Issuer = new NameIDType()
-        //        {
-        //            Value = options.EntityId
-        //        },
-        //        Version = Saml2Constants.Version,
-        //        Reason = (forcedSignout == true ? Saml2Constants.Reasons.User : Saml2Constants.Reasons.Admin),
-        //        SessionIndex = new string[] { sessionIndex },
-        //        Destination = destination,
-        //        IssueInstant = DateTime.UtcNow,
-        //        Item = new NameIDType()
-        //        {
-        //            Format = options.NameId.Format,
-        //            NameQualifier = options.NameId.NameQualifier,
-        //            SPProvidedID = options.NameId.SpProvidedId,
-        //            SPNameQualifier = options.NameId.NameQualifier,
-        //            Value = options.NameId.Value
-        //        }
-        //    };
-
-        //    var artifactResolveRequestXmlDoc = Serialize<LogoutRequestType>(logoutRequest);
-
-        //    var saml2Message = new Saml2Message()
-        //    {
-        //        IssuerAddress = destination
-        //    };
-
-        //    //artifact resolution MUST be signed
-        //    //if (options.SigningCertificate == null)
-        //    //{
-        //    //    throw new Saml2Exception("Signature Certificate cannot be null when using HTTP-SOAP binding");
-        //    //}
-        //    //var signedLogoutRequestXmlDoc = artifactResolveRequestXmlDoc.AddXmlSignature(options.SigningCertificate,
-        //    //    Elements.Issuer, Namespaces.Assertion, $"#{logoutRequestId}");
-
-        //    //put in SOAP message here
-        //    var artifactResolveSoapMessageRequest = new Envelope
-        //    {
-        //        Body = new Body
-        //        {
-        //            Item = new XmlElement[]
-        //            {
-        //               SerializeToElement(artifactResolveRequestXmlDoc)
-        //           }
-        //        }
-        //    };
-
-        //    var envelopeXmlDoc = Serialize(artifactResolveSoapMessageRequest);
-
-        //    saml2Message.ArtifactResolve = envelopeXmlDoc.OuterXml;
-        //    return saml2Message.ArtifactResolve;
-        //}
+        /// <summary>
+        /// Gets the token.
+        /// </summary>
+        /// <param name="responseType">Type of the response.</param>
+        /// <param name="encryptingCertificate2">The encrypting certificate2.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">Unable to find encrypting certificate RSA private key</exception>
         public virtual string GetToken(ResponseType responseType, X509Certificate2 encryptingCertificate2 = null)
         {
             if (encryptingCertificate2 != null)
@@ -579,6 +440,20 @@ namespace Saml2Core
             }
             return GetTokenUsingXmlReader(responseType);
         }
+
+        /// <summary>
+        /// Gets the token using XML reader.
+        /// </summary>
+        /// <param name="responseType">Type of the response.</param>
+        /// <param name="key">The key.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">
+        /// Missing assertion
+        /// or
+        /// Unable to find encrypting certificate
+        /// or
+        /// Unable to parse the decrypted assertion.
+        /// </exception>
         public virtual string GetTokenUsingXmlReader(ResponseType responseType, AsymmetricAlgorithm key = null)
         {
             string token;
@@ -625,6 +500,14 @@ namespace Saml2Core
             }
             throw new Saml2Exception("Unable to parse the decrypted assertion.");
         }
+
+        /// <summary>
+        /// Gets the assertion.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        /// <param name="options">The options.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">Assertion signature is not valid</exception>
         public AssertionType GetAssertion(string token, Saml2Options options)
         {
             if (options.WantAssertionsSigned)
@@ -643,6 +526,15 @@ namespace Saml2Core
             }
             return DeSerializeToClass<AssertionType>(token);
         }
+
+        /// <summary>
+        /// Gets the saml response token.
+        /// </summary>
+        /// <param name="base64EncodedSamlResponse">The base64 encoded saml response.</param>
+        /// <param name="responseType">Type of the response.</param>
+        /// <param name="options">The options.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">Response signature is not valid.</exception>
         public ResponseType GetSamlResponseToken(string base64EncodedSamlResponse,
             string responseType, Saml2Options options)
         {
@@ -672,6 +564,14 @@ namespace Saml2Core
             return DeSerializeToClass<ResponseType>(samlResponseString,
            responseType, Saml2Constants.Namespaces.Protocol, false);
         }
+
+        /// <summary>
+        /// Gets the artifact response token.
+        /// </summary>
+        /// <param name="envelope">The envelope.</param>
+        /// <param name="options">The options.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">Response signature is not valid.</exception>
         public ResponseType GetArtifactResponseToken(string envelope, Saml2Options options)
         {
             var reponseEnvelope = DeSerializeToClass<Envelope>(envelope);
@@ -699,6 +599,17 @@ namespace Saml2Core
             var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseElement.OuterXml);
             return samlResponseType;
         }
+
+        /// <summary>
+        /// Checks if replay attack.
+        /// </summary>
+        /// <param name="inResponseTo">The in response to.</param>
+        /// <param name="inResponseToCookieValue">The in response to cookie value.</param>
+        /// <exception cref="Saml2Core.Saml2Exception">
+        /// Empty protocol message id is not allowed.
+        /// or
+        /// Replay attack.
+        /// </exception>
         public void CheckIfReplayAttack(string inResponseTo, string inResponseToCookieValue)
         {
             string originalSamlRequestId = inResponseToCookieValue.Base64Decode();
@@ -713,6 +624,12 @@ namespace Saml2Core
                 throw new Saml2Exception("Replay attack.");
             }
         }
+
+        /// <summary>
+        /// Checks the status.
+        /// </summary>
+        /// <param name="responseToken">The response token.</param>
+        /// <exception cref="Saml2Core.Saml2Exception"></exception>
         public void CheckStatus(ResponseType responseToken)
         {
             var status = responseToken.Status.StatusCode;
@@ -722,7 +639,17 @@ namespace Saml2Core
                 throw new Saml2Exception(status.Value);
             }
         }
-        public virtual string BuildRedirectUrl()
+
+        /// <summary>
+        /// Builds a URL using the current IssuerAddress and the parameters that have been set.
+        /// </summary>
+        /// <returns>
+        /// UrlEncoded string.
+        /// </returns>
+        /// <remarks>
+        /// Each parameter &lt;Key, Value&gt; is first transformed using <see cref="M:System.Uri.EscapeDataString(System.String)" />.
+        /// </remarks>
+        public override string BuildRedirectUrl()
         {
             var _issuerAddress = this.IssuerAddress;
             StringBuilder strBuilder = new StringBuilder(_issuerAddress);
@@ -748,7 +675,14 @@ namespace Saml2Core
             }
             return strBuilder.ToString();
         }
-        public virtual string BuildFormPost()
+
+        /// <summary>
+        /// Builds a form post using the current IssuerAddress and the parameters that have been set.
+        /// </summary>
+        /// <returns>
+        /// html with head set to 'Title', body containing a hiden from with action = IssuerAddress.
+        /// </returns>
+        public override string BuildFormPost()
         {
             var _issuerAddress = this.IssuerAddress;
 
@@ -768,6 +702,11 @@ namespace Saml2Core
         #endregion
 
         #region Public Static 
+        /// <summary>
+        /// Gets the idp descriptor.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <returns></returns>
         public static IDPSSODescriptor GetIdpDescriptor(EntityDescriptor configuration)
         {
             var idpConfiguration = (configuration.ObjectItems
@@ -775,10 +714,46 @@ namespace Saml2Core
 
             return idpConfiguration;
         }
+
+        /// <summary>
+        /// Gets the artifact.
+        /// </summary>
+        /// <param name="parameter">The parameter.</param>
+        /// <returns></returns>
+        public static Artifact GetArtifact(string parameter)
+        {
+            if (string.IsNullOrEmpty(parameter))
+                throw LogHelper.LogArgumentNullException(nameof(parameter));
+
+            var artifact = ArtifactHelpers.GetParsedArtifact(parameter);
+
+            return artifact;
+        }
+
+        /// <summary>
+        /// Validates the artifact.
+        /// </summary>
+        /// <param name="artifactString">The artifact string.</param>
+        /// <param name="options">The options.</param>
+        /// <returns></returns>
+        public static bool ValidateArtifact(string artifactString, Saml2Options options)
+        {
+            var idpDescriptor = GetIdpDescriptor(options.Configuration);
+
+            var ars = idpDescriptor.ArtifactResolutionServices.Select(a => (ushort)a.Index).ToArray();
+            var validIssuers = options.ValidIssuers.Prepend(options.Configuration.EntityID).ToArray();
+
+            return ArtifactHelpers.IsValid(artifactString, ars, validIssuers);
+        }
         #endregion
 
         #region Private 
 
+        /// <summary>
+        /// Gets the requested authn context.
+        /// </summary>
+        /// <param name="requestedAuthnContext">The requested authn context.</param>
+        /// <returns></returns>
         private static RequestedAuthnContextType GetRequestedAuthnContext(RequestedAuthnContext requestedAuthnContext)
         {
             if (requestedAuthnContext != null)
@@ -796,6 +771,15 @@ namespace Saml2Core
             }
             return null;
         }
+
+        /// <summary>
+        /// Validates the XML signature.
+        /// </summary>
+        /// <param name="xmlDoc">The XML document.</param>
+        /// <param name="verifySignatureOnly">if set to <c>true</c> [verify signature only].</param>
+        /// <param name="configuration">The configuration.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">Too many signatures!</exception>
         private static bool ValidateXmlSignature(XmlDocument xmlDoc,
             bool verifySignatureOnly, EntityDescriptor configuration)
         {
@@ -820,6 +804,14 @@ namespace Saml2Core
             return signedXml.CheckSignature(GetIdpCertificate(idpCertificates, signedCertificate.SerialNumber),
                 verifySignatureOnly);
         }
+
+        /// <summary>
+        /// Extracts the session key.
+        /// </summary>
+        /// <param name="encryptedElement">The encrypted element.</param>
+        /// <param name="privateKey">The private key.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">Unable to locate assertion decryption key.</exception>
         private SymmetricAlgorithm ExtractSessionKey(EncryptedElementType encryptedElement,
             AsymmetricAlgorithm privateKey)
         {
@@ -835,6 +827,14 @@ namespace Saml2Core
             }
             throw new Saml2Exception("Unable to locate assertion decryption key.");
         }
+
+        /// <summary>
+        /// Converts to symmetrickey.
+        /// </summary>
+        /// <param name="encryptedKey">The encrypted key.</param>
+        /// <param name="privateKey">The private key.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">Unable to decode CipherData of type \"CipherReference\".</exception>
         private SymmetricAlgorithm ToSymmetricKey(EncryptedKey encryptedKey,
             AsymmetricAlgorithm privateKey)
         {
@@ -850,11 +850,24 @@ namespace Saml2Core
             }
             throw new Saml2Exception("Unable to decode CipherData of type \"CipherReference\".");
         }
+
+        /// <summary>
+        /// Gets the key instance.
+        /// </summary>
+        /// <returns></returns>
         private static SymmetricAlgorithm GetKeyInstance()
         {
             var sessionKey = Aes.Create();
             return sessionKey;
         }
+
+        /// <summary>
+        /// Gets the idp certificate.
+        /// </summary>
+        /// <param name="x509Certificate2s">The X509 certificate2s.</param>
+        /// <param name="serialNumber">The serial number.</param>
+        /// <returns></returns>
+        /// <exception cref="System.Exception">No matching certificate found. Assertion is not from known Idp.</exception>
         private static X509Certificate2 GetIdpCertificate(X509Certificate2[] x509Certificate2s,
             string serialNumber)
         {
@@ -865,6 +878,15 @@ namespace Saml2Core
             }
             return cert;
         }
+
+        /// <summary>
+        /// Signs the data.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="data">The data.</param>
+        /// <param name="hashAlgorithmName">Name of the hash algorithm.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">Signing key must be an instance of either RSA, DSA or ECDSA.</exception>
         private byte[] SignData(AsymmetricAlgorithm key, byte[] data, HashAlgorithmName hashAlgorithmName)
         {
             if (key is RSA)
@@ -884,17 +906,23 @@ namespace Saml2Core
             }
             throw new Saml2Exception("Signing key must be an instance of either RSA, DSA or ECDSA.");
         }
-        //To construct the signature, a string consisting of the concatenation of the RelayState(if present),
-        //SigAlg, and SAMLRequest(or SAMLResponse) query string parameters(each one URLencoded) is constructed
-        //in one of the following ways(ordered as 'SAMLRequest=value&RelayState=value&SigAlg=value')
+
+        /// <summary>
+        /// Gets the query signature.
+        /// To construct the signature, a string consisting of the concatenation of the RelayState(if present),
+        /// SigAlg, and SAMLRequest(or SAMLResponse) query string parameters(each one URLencoded) is constructed
+        /// in one of the following ways(ordered as 'SAMLRequest=value&RelayState=value&SigAlg=value')
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="query">The query.</param>
+        /// <param name="hashAlgorithmName">Name of the hash algorithm.</param>
+        /// <returns></returns>
+        /// <exception cref="Saml2Core.Saml2Exception">Signing key must be an instance of either RSA, DSA or ECDSA.</exception>
         private string GetQuerySignature(AsymmetricAlgorithm key, string query, HashAlgorithmName hashAlgorithmName)
         {
             // Check if the key is of a supported type. [SAMLBind] sect. 3.4.4.1 specifies this.
             if (!(key is RSA || key is DSA || key is ECDsa || key == null))
                 throw new Saml2Exception("Signing key must be an instance of either RSA, DSA or ECDSA.");
-            //TODO
-            //if (key == null)
-            //    return;
 
             var uri = new Uri(query);
             var queryString = uri.Query.Remove(0, 1);
@@ -904,6 +932,12 @@ namespace Saml2Core
 
             return HttpUtility.UrlEncode(Convert.ToBase64String(signature));
         }
+
+        /// <summary>
+        /// Gets the query sign alg.
+        /// </summary>
+        /// <param name="signatureMethod">The signature method.</param>
+        /// <returns></returns>
         private static string GetQuerySignAlg(string signatureMethod)
         {
             if (signatureMethod == null)
@@ -912,6 +946,12 @@ namespace Saml2Core
             var urlEncoded = signatureMethod.UrlEncode();
             return urlEncoded.UpperCaseUrlEncode();
         }
+
+        /// <summary>
+        /// Encodes the deflate message.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
         private static string EncodeDeflateMessage(string request)
         {
             var encoded = request.DeflateEncode();
@@ -956,6 +996,12 @@ namespace Saml2Core
             return xmlDoc;
         }
 
+        /// <summary>
+        /// Des the serialize to class.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="xmlString">The XML string.</param>
+        /// <returns></returns>
         private static T DeSerializeToClass<T>(string xmlString) where T : class
         {
             var xmlSerializer = new XmlSerializer(typeof(T));
@@ -973,6 +1019,15 @@ namespace Saml2Core
             }
         }
 
+        /// <summary>
+        /// Des the serialize to class.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="xmlString">The XML string.</param>
+        /// <param name="elementName">Name of the element.</param>
+        /// <param name="namespaceString">The namespace string.</param>
+        /// <param name="isNullable">if set to <c>true</c> [is nullable].</param>
+        /// <returns></returns>
         private static T DeSerializeToClass<T>(string xmlString,
             string elementName = null, string namespaceString = null, bool isNullable = false) where T : class
         {
@@ -998,17 +1053,13 @@ namespace Saml2Core
             }
         }
 
-        public static Artifact GetArtifact(string parameter)
-        {
-            if (string.IsNullOrEmpty(parameter))
-                throw LogHelper.LogArgumentNullException(nameof(parameter));
-
-            var artifact = ArtifactHelpers.GetParsedArtifact(parameter);
-
-            return artifact;
-        }
-
-        public string BuildArtifact(string sourceIdValue, short endpointIndexValue)
+        /// <summary>
+        /// Builds the artifact.
+        /// </summary>
+        /// <param name="sourceIdValue">The source identifier value.</param>
+        /// <param name="endpointIndexValue">The endpoint index value.</param>
+        /// <returns></returns>
+        private string BuildArtifact(string sourceIdValue, short endpointIndexValue)
         {
             if (string.IsNullOrEmpty(sourceIdValue))
                 throw LogHelper.LogArgumentNullException(nameof(sourceIdValue));
@@ -1018,16 +1069,11 @@ namespace Saml2Core
             return artifactString;
         }
 
-        public static bool ValidateArtifact(string artifactString, Saml2Options options)
-        {
-            var idpDescriptor = GetIdpDescriptor(options.Configuration);
-
-            var ars = idpDescriptor.ArtifactResolutionServices.Select(a => (ushort)a.Index).ToArray();
-            var validIssuers = options.ValidIssuers.Prepend(options.Configuration.EntityID).ToArray();
-
-            return ArtifactHelpers.IsValid(artifactString, ars, validIssuers);
-        }
-
+        /// <summary>
+        /// Gets the protocol binding.
+        /// </summary>
+        /// <param name="responseProtocolBinding">The response protocol binding.</param>
+        /// <returns></returns>
         private static string GetProtocolBinding(Saml2ResponseProtocolBinding responseProtocolBinding)
         {
             switch (responseProtocolBinding)
@@ -1044,6 +1090,14 @@ namespace Saml2Core
                     return ProtocolBindings.HTTP_Post;
             }
         }
+
+        /// <summary>
+        /// Gets the sign on endpoint.
+        /// </summary>
+        /// <param name="signOnEndpoints">The sign on endpoints.</param>
+        /// <param name="method">The method.</param>
+        /// <param name="idpSsoEndpointLocation">The idp sso endpoint location.</param>
+        /// <returns></returns>
         private static string GetSignOnEndpoint(Endpoint[] signOnEndpoints, Saml2AuthenticationBehaviour method,
             string idpSsoEndpointLocation)
         {
@@ -1069,6 +1123,14 @@ namespace Saml2Core
                  && s.Location == idpSsoEndpointLocation).Location;
             }
         }
+
+        /// <summary>
+        /// Gets the single logout endpoint.
+        /// </summary>
+        /// <param name="singleLogoutEndpoints">The single logout endpoints.</param>
+        /// <param name="method">The method.</param>
+        /// <param name="idpSloEndpointLocation">The idp slo endpoint location.</param>
+        /// <returns></returns>
         private static string GetSingleLogoutEndpoint(Endpoint[] singleLogoutEndpoints, Saml2LogoutBehaviour method,
            string idpSloEndpointLocation)
         {

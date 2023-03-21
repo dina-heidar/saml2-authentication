@@ -78,7 +78,6 @@ namespace Saml2Core
             options.EntityId = options.EntityId;
             options.ForceAuthn = options.ForceAuthn;
             options.IsPassive = options.IsPassive;
-            options.LogoutChannel = options.LogoutChannel;
             options.LogoutMethod = options.LogoutMethod;
             options.MetadataAddress = options.MetadataAddress;
             options.RemoteSignOutPath = options.RemoteSignOutPath;

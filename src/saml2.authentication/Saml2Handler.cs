@@ -43,10 +43,8 @@ namespace Saml2Core
     internal class Saml2Handler : RemoteAuthenticationHandler<Saml2Options>,
         IAuthenticationSignOutHandler
     {
-        private const string CorrelationProperty = ".xsrf";
-        private readonly ISaml2Service _saml2Service;
         private readonly ILogger<Saml2Handler> _logger;
-        private EntityDescriptor? _configuration;
+        private EntityDescriptor _configuration;
         protected HttpClient Backchannel => Options.Backchannel;
 
         /// <summary>
@@ -56,17 +54,14 @@ namespace Saml2Core
         /// <param name="loggerFactory">The logger factory.</param>
         /// <param name="encoder">The encoder.</param>
         /// <param name="clock">The clock.</param>
-        /// <param name="saml2Service">The saml2 service.</param>
         public Saml2Handler(
             IOptionsMonitor<Saml2Options> options,
             ILoggerFactory loggerFactory,
             UrlEncoder encoder,
-            ISystemClock clock,
-            ISaml2Service saml2Service
+            ISystemClock clock
             ) : base(options, loggerFactory, encoder, clock)
         {
             _logger = loggerFactory.CreateLogger<Saml2Handler>();
-            _saml2Service = saml2Service;
         }
         protected override async Task<HandleRequestResult> HandleRemoteAuthenticateAsync()
         {
@@ -168,7 +163,7 @@ namespace Saml2Core
                 else
                 {
                     //read saml response and vaidate signature if needed
-                    responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse, 
+                    responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse,
                         Saml2Constants.ResponseTypes.AuthnResponse, Options);
                 }
 
@@ -392,7 +387,7 @@ namespace Saml2Core
             //response to the authn request. The authn request ID is saved in the SAML session
             //state so it can be checked against the InResponseTo.
 
-            //cleanup and remove existing saml cookies            
+            //cleanup and remove existing saml cookies
             Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
 
             //create cookie 
@@ -549,7 +544,7 @@ namespace Saml2Core
         }
 
         //sp initiated single logout
-        public virtual async Task SignOutAsync(AuthenticationProperties? properties)
+        public virtual async Task SignOutAsync(AuthenticationProperties properties)
         {
             var target = ResolveTarget(Options.ForwardSignOut);
             if (target != null)
@@ -608,129 +603,6 @@ namespace Saml2Core
             Response.Cookies.Append(Options.Saml2CoreCookie.Name, logoutRequestId.Base64Encode(),
                 Options.Saml2CoreCookie.Build(Context));
 
-            //if (Options.LogoutMethod == Saml2LogoutBehaviour.SOAP)
-            //{
-            //    var artifactResolveRequest = new Saml2Message()
-            //    .CreateArtifactResolutionLogoutRequest(Options, logoutRequestId, sessionIndex,
-            //    true);
-
-            //    var requestMessage = new HttpRequestMessage(HttpMethod.Post,
-            //   Saml2Message.GetIdpDescriptor(Options.Configuration).ArtifactResolutionServices
-            //   .FirstOrDefault().Location);
-
-            //    requestMessage.Headers.Add(Parameters.SOAPAction, Artifacts.SoapAction);
-            //    requestMessage.Content = new StringContent(artifactResolveRequest, Encoding.UTF8, "text/xml");
-            //    requestMessage.Version = new Version(2, 0);
-
-            //    //send soap message
-            //    var responseMessage = await Backchannel.SendAsync(requestMessage,
-            //        HttpCompletionOption.ResponseHeadersRead, Context.RequestAborted);
-
-            //    var contentMediaType = responseMessage.Content.Headers.ContentType?.MediaType;
-            //    if (string.IsNullOrEmpty(contentMediaType))
-            //    {
-            //        Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type header is missing.");
-            //    }
-            //    else if (!string.Equals(contentMediaType, "text/xml", StringComparison.OrdinalIgnoreCase))
-            //    {
-            //        Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type {responseMessage.Content.Headers.ContentType}.");
-            //    }
-
-            //    try
-            //    {
-            //        var responseContent = await responseMessage.Content.ReadAsStringAsync();
-            //        saml2Message.ArtifactResponse = responseContent;
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        throw new Saml2Exception($"Failed to parse token response body as JSON. Status Code: {(int)responseMessage.StatusCode}. Content-Type: {responseMessage.Content.Headers.ContentType}", ex);
-            //    }
-
-            //    if (!responseMessage.IsSuccessStatusCode)
-            //    {
-            //        throw new Saml2Exception(responseMessage.ReasonPhrase);
-            //    }
-            //    var responseToken = saml2Message.GetArtifactResponseToken(saml2Message.ArtifactResponse, Options);
-
-            //    //since this is a solicited login (sent from challenge)
-            //    // we must compare the incoming 'InResponseTo' what we have in the cookie
-            //    var requestCookies = Request.Cookies;
-            //    var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CoreCookie.Name))];
-
-            //    //validate it is not a replay attack by comparing inResponseTo values
-            //    saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
-
-            //    //cleanup and remove existing saml cookies
-            //    //no need for it since we checked the inResponseId values
-            //    Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
-
-            //    //check what the Idp response is -if it was successful or not
-            //    saml2Message.CheckStatus(responseToken);
-
-            //    if (Context.User.Identity.IsAuthenticated)
-            //    {
-            //        await Context.SignOutAsync(Options.SignOutScheme, properties);
-            //    }
-
-            //    var redirectUrl = !string.IsNullOrEmpty(properties.RedirectUri) ?
-            //        properties.RedirectUri : Options.DefaultRedirectUrl.ToString();
-            //    Response.Redirect(redirectUrl, true);
-            //}
-            if (Options.LogoutMethod == Saml2LogoutBehaviour.Artifact)
-            {
-                var samlArtRequest = saml2Message.CreateArtifactLogoutRequest2(Options, relayState);
-                Response.Redirect(samlArtRequest);
-
-                //var samlArtRequest = saml2Message.CreateArtifactLogoutRequest(Options, logoutRequestId, relayState);
-
-                ////use the index that was in the returned parsed artifact object
-                //var requestMessage = new HttpRequestMessage(HttpMethod.Post,
-                //    Saml2Message.GetIdpDescriptor(Options.Configuration).ArtifactResolutionServices
-                //    .FirstOrDefault().Location);
-
-
-                //requestMessage.Headers.Add(Parameters.SOAPAction, Artifacts.SoapAction);
-                //requestMessage.Content = new StringContent(samlArtRequest, Encoding.UTF8, "text/xml");
-                //requestMessage.Version = new Version(2, 0);
-
-                ////send soap message
-                //var responseMessage = await Backchannel.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, Context.RequestAborted);
-
-                //var contentMediaType = responseMessage.Content.Headers.ContentType?.MediaType;
-                //if (string.IsNullOrEmpty(contentMediaType))
-                //{
-                //    Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type header is missing.");
-                //}
-                //else if (!string.Equals(contentMediaType, "text/xml", StringComparison.OrdinalIgnoreCase))
-                //{
-                //    Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type {responseMessage.Content.Headers.ContentType}.");
-                //}
-
-                //try
-                //{
-                //    var responseContent = await responseMessage.Content.ReadAsStringAsync();
-                //    saml2Message.ArtifactResponse = responseContent;
-                //}
-                //catch (Exception ex)
-                //{
-                //    throw new Saml2Exception($"Failed to parse token response body as JSON. Status Code: {(int)responseMessage.StatusCode}. Content-Type: {responseMessage.Content.Headers.ContentType}", ex);
-                //}
-
-                //if (!responseMessage.IsSuccessStatusCode)
-                //{
-                //    throw new Saml2Exception(responseMessage.ReasonPhrase);
-                //}
-                //saml2Message.GetArtifactResponseToken(saml2Message.ArtifactResponse, Options);
-
-                ////var content = samlArtRequest;
-                ////var buffer = Encoding.UTF8.GetBytes(samlArtRequest);
-
-                ////Response.ContentLength = buffer.Length;
-                ////Response.ContentType = "text/html;charset=iso-8859-1";
-                //////call idp
-                ////Response.Redirect(samlArtRequest);
-                ////await Response.WriteAsync(samlArtRequest);              
-            }
             //if logout is redirect
             if (Options.LogoutMethod == Saml2LogoutBehaviour.RedirectGet)
             {
@@ -738,6 +610,7 @@ namespace Saml2Core
                 //call idp
                 Response.Redirect(samlRequest);
             }
+
             //if logout is post 
             else if (Options.LogoutMethod == Saml2LogoutBehaviour.FormPost)
             {

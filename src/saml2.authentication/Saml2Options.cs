@@ -24,14 +24,17 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using MetadataBuilder.Schema.Metadata;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Internal;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Tokens.Saml2;
 using Saml.MetadataBuilder;
+using Saml2Core.Metadata;
 using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
@@ -46,7 +49,7 @@ namespace Saml2Core
         {
             //schemes
             ForwardChallenge = AuthenticationScheme;
-            SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;           
+            SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             AuthenticationScheme = Saml2Defaults.AuthenticationScheme;
 
             //paths
@@ -76,17 +79,8 @@ namespace Saml2Core
 
             //logout
             LogoutMethod = Saml2LogoutBehaviour.RedirectGet;
-            LogoutChannel = Saml2LogoutChannel.FrontChannel;
-
-            //authenticationSendMethod =>  redirect(get), post ==> front-channel only
-            //ProtocolBinding = post,  artifact
-            ////(contains ProtocolBinding which tells the Idp how to respond, must corelate with 
-            /// previously provided assertionconsumerUrl and index)
-            //authenticationMethodResponseBinding => post, artifact
-
-
-            //logoutSendMethod => redirect(get),post, artifact, soap ==> front-channel OR back-channel       
-            //logoutMethodResponseBinding => redirect(get),post, artifact, soap
+            LogoutRequestSigned = true;
+            ResponseLogoutBinding = Saml2ResponseLogoutBinding.FormPost; //for the metadata, how the idp will send the logout response
 
             //events
             Events = new Saml2Events();
@@ -113,15 +107,6 @@ namespace Saml2Core
             SkipUnrecognizedRequests = true;
         }
 
-        /// <summary>
-        /// Gets or sets the index of the Idp artifact resolution service.
-        /// if null, value will be parsed from artifact value
-        /// </summary>
-        /// <value>
-        /// The index of the artifact resolution service.
-        /// The default value is '0'.
-        /// </value>
-       // public ushort? IdpArtifactResolutionServiceIndex { get; set; }
         /// <summary>
         /// Gets or sets the location of the idp single sign on service index.
         /// if null, the first SignleSignOnService location with configured 
@@ -182,7 +167,7 @@ namespace Saml2Core
         /// <value>
         /// The authentication scheme.
         /// </value>
-        public string AuthenticationScheme { get; set; }
+        public string AuthenticationScheme { get; set; }      
         /// <summary>
         /// Gets or sets the cookie consent as essential or not
         /// It overrdies the Cookie policy set.
@@ -302,14 +287,6 @@ namespace Saml2Core
         /// </value>
         public bool IsPassive { get; set; }
         /// <summary>
-        /// Gets or sets the logout channel type.
-        /// </summary>
-        /// <value>
-        /// The logout channel. The default value is asynchronous 'front-channel'
-        /// </value>
-        public Saml2LogoutChannel LogoutChannel { get; set; }
-
-        /// <summary>
         /// Gets or sets the logout method.
         /// </summary>
         /// <value>
@@ -324,9 +301,17 @@ namespace Saml2Core
         /// section 3.7.1
         /// </summary>
         /// <value>
-        ///   <c>true</c> if [logout request signed]; otherwise, <c>false</c>.
+        /// The default value is <c>true</c> if [logout request signed]; otherwise, <c>false</c>.
         /// </value>
         public bool LogoutRequestSigned { get; set; }
+
+        /// <summary>
+        /// Gets or sets the response logout binding.
+        /// </summary>
+        /// <value>
+        /// The response logout binding.
+        /// </value>
+        public Saml2ResponseLogoutBinding ResponseLogoutBinding {get;set;}
         /// <summary>
         /// Gets or sets the 'max_age'. If set the 'max_age' parameter 
         /// will be sent with the authentication request. If the identity
@@ -334,7 +319,7 @@ namespace Saml2Core
         /// length of time specified, the user will be prompted to
         /// re-authenticate. By default no max_age is specified.
         /// </summary>
-        public TimeSpan? MaxAge { get; set; }
+        public TimeSpan? MaxAge { get; set; }       
         /// <summary>
         /// Gets or sets if a metadata refresh should be attempted after 
         /// a SecurityTokenSignatureKeyNotFoundException. This allows for automatic
@@ -384,7 +369,7 @@ namespace Saml2Core
         /// <value>
         /// The default value is 'HTTP-POST'
         /// </value>
-        public Saml2ResponseProtocolBinding? ResponseProtocolBinding { get; set; }
+        public Saml2ResponseProtocolBinding ResponseProtocolBinding { get; set; }
         /// <summary>
         /// Gets or sets the name of the saml2 core cookie.
         /// </summary>
@@ -392,6 +377,13 @@ namespace Saml2Core
         /// The name of the saml2 core cookie.
         /// </value>
         public string Saml2CoreCookieName { get; set; }
+        /// <summary>
+        /// Creates the metadata file when `CreateMetadatFile=true`.
+        /// </summary>
+        /// <value>
+        /// The metadata.
+        /// </value>
+        public Saml2Metadata Metadata { get; set; }
         /// <summary>
         /// Gets or sets the remote sign out path. The default value is "/saml2-signout"
         /// This is used by the Idp to POST back to after it logs the user out of the Idp session.
@@ -546,7 +538,7 @@ namespace Saml2Core
             }
         }
 
-        #endregion       
+        #endregion
 
         #region Internals
 
@@ -561,20 +553,25 @@ namespace Saml2Core
         /// </value>
         internal bool AllowUnsolicitedLogins { get; set; }
         /// <summary>
-        /// //TODO
-        /// Configuration will be provided directly by the developer. 
+        /// Configuration will be provided directly by the developer.
         /// If provided, then Idp MetadataAddress and the Backchannel properties
-        /// will not be used. This information should not 
+        /// will not be used. This information should not
         /// be updated during request processing.
         /// </summary>
-        internal EntityDescriptor? Configuration { get; set; }
+        /// <value>
+        /// The configuration.
+        /// </value>
+        internal EntityDescriptor Configuration { get; set; }
         /// <summary>
-        /// Responsible for retrieving, caching, and refreshing 
+        /// Responsible for retrieving, caching, and refreshing
         /// the configuration from metadata.
-        /// If not provided, then one will be created using the 
+        /// If not provided, then one will be created using the
         /// Idp MetadataAddress and Backchannel properties.
         /// </summary>
-        internal IConfigurationManager<EntityDescriptor>? ConfigurationManager { get; set; }
+        /// <value>
+        /// The configuration manager.
+        /// </value>
+        internal IConfigurationManager<EntityDescriptor> ConfigurationManager { get; set; }
         /// <summary>
         /// Gets or sets the saml2 core cookie.
         /// </summary>

@@ -23,7 +23,7 @@
 namespace Saml2Core
 {
     public class Saml2Constants
-    {       
+    {
         public const string Version = "2.0";
         public const string InResponseToId = "Saml2InResponseToId";
 
@@ -145,7 +145,6 @@ namespace Saml2Core
         {
             public const string Namespace = "http://saml2Core/";
             public const string SessionIndex = $"{Namespace}sid";
-            public const string NameId = $"{Namespace}nameId";
         }
         public static class ProtocolBindings
         {

@@ -76,10 +76,9 @@ namespace Saml2Core
         /// <returns></returns>
         public static AuthenticationBuilder AddSaml2(this AuthenticationBuilder builder,
             string authenticationScheme, string displayName, Action<Saml2Options> configureOptions)
-        {           
+        {
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<Saml2Options>, Saml2ConfigureOptions>());
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<Saml2Options>, Saml2PostConfigureOptions>());
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ISaml2Service, Saml2Service>());         
             builder.Services.TryAddEnumerable(ServiceDescriptor.Transient<IDocumentRetriever, FileDocumentRetriever>());
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpContextAccessor, HttpContextAccessor>());
             builder.Services.AddSamlMetadatBuilder();
