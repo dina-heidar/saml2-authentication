@@ -20,31 +20,40 @@
 // SOFTWARE.
 //
 
-using System;
-using System.Linq;
-using Microsoft.AspNetCore.Http;
+using Saml.MetadataBuilder.Constants;
 
-namespace Saml2Core.Helpers
+namespace Saml2Core
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    public static class HttpExtensions
+
+    public static class RequestedAuthnContextTypes
     {
-        /// <summary>
-        /// Deletes all request identifier cookies.
-        /// </summary>
-        /// <param name="response">The response.</param>
-        /// <param name="request">The request.</param>
-        /// <param name="samlCookieName">Name of the saml cookie.</param>
-        public static void DeleteAllSaml2RequestCookies(this HttpResponse response, HttpRequest request, string samlCookieName)
+        public static RequestedAuthenticationContext FormsAuthentication(string comparisonType = "exact")
         {
-            var cookies = request.Cookies;
-            foreach (var cookie in cookies.Where(c => c.Key.StartsWith(samlCookieName)))
+            return new RequestedAuthenticationContext
             {
-                response.Cookies.Append(cookie.Key, "", new CookieOptions() { Expires = DateTime.Now.AddDays(-1) });
-                response.Cookies.Delete(cookie.Key);
-            }
+                ComparisonType = comparisonType,
+                AuthnContextRefTypes = new[] { AuthnContextRefTypes.UserNameAndPassword }
+            };
+        }
+
+        public static RequestedAuthenticationContext WindowsAuthentication(string comparisonType = "exact")
+        {
+            return new RequestedAuthenticationContext
+            {
+                ComparisonType = comparisonType,
+                AuthnContextRefTypes = new[] { AuthnContextRefTypes.IntegratedWindowsAuthentication }
+            };
+        }
+
+        public static RequestedAuthenticationContext Custom(string authnContextRefTypes,
+            string comparisonTypes = "exact")
+        {
+            return new RequestedAuthenticationContext
+            {
+                ComparisonType = comparisonTypes,
+                AuthnContextRefTypes = new[] { authnContextRefTypes }
+            };
         }
     }
 }
+

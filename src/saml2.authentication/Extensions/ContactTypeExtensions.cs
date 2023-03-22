@@ -20,34 +20,35 @@
 // SOFTWARE.
 //
 
+using Saml.MetadataBuilder.Constants;
+
 namespace Saml2Core
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    public enum Saml2LogoutBehaviour
+    internal static class ContactTypeExtensions
     {
-        /// <summary>
-        /// Emits a 302 response to redirect the user agent to
-        /// the Saml2 provider using a GET request.
-        /// </summary>
-        RedirectGet = 0,
+        public static ContactEnumType ToContactEnumType(this ContactType value)
+        {
+            switch(value)
+            {
+                case ContactType.Billing:
+                    return ContactEnumType.Billing;
 
-        /// <summary>
-        /// Emits an HTML form to redirect the user agent to
-        /// theSaml2 provider using a POST request.
-        /// </summary>
-        FormPost = 1
+                case ContactType.Support:
+                    return ContactEnumType.Support;
 
-        /// <summary>
-        /// Creates an artifact and send it the Idp artifact endpoint
-        /// using GET request.
-        /// </summary>
-        //Artifact = 2,
+                case ContactType.Administrative:
+                    return ContactEnumType.Administrative;
 
-        /// <summary>
-        /// Creates an SOAP request and send it the Idp.
-        /// </summary>
-        //SOAP = 3
+                case ContactType.Technical:
+                    return ContactEnumType.Technical;
+
+                case ContactType.Other:
+                    return ContactEnumType.Other;
+
+                default:
+                    return ContactEnumType.Other;
+
+            }
+        }
     }
 }

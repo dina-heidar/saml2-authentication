@@ -26,52 +26,9 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Logging;
 
-namespace Saml2Core.Helpers
+namespace Saml2Core
 {
-    public class Artifact
-    {
-        /// <summary>
-        /// Gets or sets the type code value.
-        /// Type of the artifact. This is always 0x0004
-        /// </summary>
-        /// <value>
-        /// The type code value.
-        /// </value>
-        public short TypeCodeValue { get; set; }
-        public string TypeCodeValueString { get; set; }
-        /// <summary>
-        /// Gets or sets the index of the endpoint.
-        /// The issuer's artifact Resolution Service endpoint 
-        /// where the artifact should be resolved
-        /// </summary>
-        /// <value>
-        /// The index of the endpoint.
-        /// </value>
-        public short? EndpointIndex { get; set; }
-        public string EndpointIndexString { get; set; }
-        /// <summary>
-        /// Gets or sets the source code identifier. 
-        /// Represents the entity ID of the provider who created 
-        /// this artifact. The entity ID is hashed using SHA-1, 
-        /// ensuring that it's always 20 bytes in length
-        /// </summary>
-        /// <value>
-        /// The source code identifier.
-        /// </value>
-        public byte[] SourceCodeId { get; set; }
-        public string SourceCodeIdString { get; set; }
-        /// <summary>
-        /// Gets or sets the message handler.
-        /// A cryptographically random value that identifies this specific artifact
-        /// </summary>
-        /// <value>
-        /// The message handler.
-        /// </value>
-        public byte[] MessageHandler { get; set; }
-        public string MessageHandlerString { get; set; }
-    }
-
-    internal static class ArtifactHelpers
+    internal static class ArtifactExtensions
     {
         private const int typeCodeLength = 2;
         private const int endPointLength = 2;
@@ -147,7 +104,7 @@ namespace Saml2Core.Helpers
 
             //typecode
             var typeCode = new byte[typeCodeLength];
-            typeCode[0] = (byte)(Saml2Constants.Artifacts.ArtifactTypeCode >> 8);
+            typeCode[0] = Saml2Constants.Artifacts.ArtifactTypeCode >> 8;
             typeCode[1] = (byte)Saml2Constants.Artifacts.ArtifactTypeCode;
 
             //endpointindex

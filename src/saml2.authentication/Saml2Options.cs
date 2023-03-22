@@ -24,17 +24,14 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using MetadataBuilder.Schema.Metadata;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Internal;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Tokens.Saml2;
 using Saml.MetadataBuilder;
-using Saml2Core.Metadata;
 using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
@@ -342,7 +339,7 @@ namespace Saml2Core
         /// <value>
         /// The requested authn context.
         /// </value>
-        public RequestedAuthnContext RequestedAuthnContext { get; set; }
+        public RequestedAuthenticationContext RequestedAuthnContext { get; set; }
         /// <summary>
         /// Gets or sets a value indicating whether [require HTTPS metadata].
         /// </summary>

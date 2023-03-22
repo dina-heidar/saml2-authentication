@@ -20,34 +20,40 @@
 // SOFTWARE.
 //
 
+using System;
+
 namespace Saml2Core
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    public enum Saml2LogoutBehaviour
+    public class Organization
     {
         /// <summary>
-        /// Emits a 302 response to redirect the user agent to
-        /// the Saml2 provider using a GET request.
+        /// Gets or sets the display name of the organization.
         /// </summary>
-        RedirectGet = 0,
-
+        /// <value>
+        /// The display name of the organization.
+        /// </value>
+        public string OrganizationDisplayName { get; set; }
         /// <summary>
-        /// Emits an HTML form to redirect the user agent to
-        /// theSaml2 provider using a POST request.
+        /// Gets or sets the name of the organization.
         /// </summary>
-        FormPost = 1
-
+        /// <value>
+        /// The name of the organization.
+        /// </value>
+        public string OrganizationName { get; set; }
         /// <summary>
-        /// Creates an artifact and send it the Idp artifact endpoint
-        /// using GET request.
+        /// Gets or sets the organization URL.
         /// </summary>
-        //Artifact = 2,
-
+        /// <value>
+        /// The organization URL.
+        /// </value>
+        public Uri OrganizationURL { get; set; }
         /// <summary>
-        /// Creates an SOAP request and send it the Idp.
+        /// Gets or sets the language culture format.
+        /// eg `en-US`
         /// </summary>
-        //SOAP = 3
+        /// <value>
+        /// The language.
+        /// </value>
+        public string Language { get; set; } = "en-US";
     }
 }

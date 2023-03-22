@@ -20,53 +20,43 @@
 // SOFTWARE.
 //
 
-using Saml.MetadataBuilder.Constants;
-
-namespace Saml2Core.Metadata
+namespace Saml2Core
 {
-    public class Saml2MetadataContactPerson
+    public class AttributeConsumingService
     {
         /// <summary>
-        /// Gets or sets the company.
+        /// Gets or sets the service names.
         /// </summary>
         /// <value>
-        /// The company.
+        /// The service names.
         /// </value>
-        public string Company { get; set; }
+        public string ServiceNames { get; set; }
+
         /// <summary>
-        /// Gets or sets the type of the contact.
+        /// Gets or sets the service descriptions.
         /// </summary>
         /// <value>
-        /// The type of the contact.
+        /// The service descriptions.
         /// </value>
-        public ContactEnumType ContactType { get; set; }
+        public string ServiceDescriptions { get; set; }
+
         /// <summary>
-        /// Gets or sets the email address.
+        /// Gets or sets the language.
         /// </summary>
         /// <value>
-        /// The email address.
+        /// The language.
         /// </value>
-        public string EmailAddress { get; set; }
+        public string Language { get; set; } = "en-US";
+
         /// <summary>
-        /// Gets or sets the telephone number.
+        /// Gets or sets the requested attributes.
+        /// Requested Attributes in Service Provider (SP) metadata are used by the Identity Provider (IdP) 
+        /// to make attribute release decisions. An IdP may also use it in conjunction with 
+        /// other user interface elements to construct the user attribute release consent form. 
         /// </summary>
         /// <value>
-        /// The telephone number.
+        /// The requested attributes.
         /// </value>
-        public string TelephoneNumber { get; set; }
-        /// <summary>
-        /// Gets or sets the name of the given.
-        /// </summary>
-        /// <value>
-        /// The name of the given.
-        /// </value>
-        public string GivenName { get; set; }
-        /// <summary>
-        /// Gets or sets the surname.
-        /// </summary>
-        /// <value>
-        /// The surname.
-        /// </value>
-        public string Surname { get; set; }
+        public RequestedAttribute[] RequestedAttributes { get; set; }
     }
 }

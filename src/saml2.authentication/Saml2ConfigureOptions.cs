@@ -46,7 +46,7 @@ namespace Saml2Core
             }
 
             //inherited
-            options.BackchannelTimeout = StringHelpers.ParseValueOrDefault(null, _invariantTimeSpanParse, options.BackchannelTimeout);
+            options.BackchannelTimeout = StringExtensions.ParseValueOrDefault(null, _invariantTimeSpanParse, options.BackchannelTimeout);
             options.CallbackPath = new PathString(options.CallbackPath.Value);
             options.ClaimsIssuer = options.ClaimsIssuer;
             options.ForwardAuthenticate = options.ForwardAuthenticate;
@@ -55,14 +55,14 @@ namespace Saml2Core
             options.ForwardForbid = options.ForwardForbid;
             options.ForwardSignIn = options.ForwardSignIn;
             options.ForwardSignOut = options.ForwardSignOut;
-            options.RemoteAuthenticationTimeout = StringHelpers.ParseValueOrDefault(null, _invariantTimeSpanParse, options.RemoteAuthenticationTimeout);
+            options.RemoteAuthenticationTimeout = StringExtensions.ParseValueOrDefault(null, _invariantTimeSpanParse, options.RemoteAuthenticationTimeout);
             options.RemoteSignOutPath = options.RemoteSignOutPath.Value;
             options.SaveTokens = options.SaveTokens;
             options.SignedOutRedirectUri = options.SignedOutRedirectUri;
             options.SignInScheme = options.SignInScheme;
 
             SetCookie(options.CorrelationCookie);
-            options.MaxAge = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, options.MaxAge);
+            options.MaxAge = StringExtensions.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, options.MaxAge);
             SetCookie(options.Saml2CoreCookie);
 
             //saml2 options
@@ -104,8 +104,8 @@ namespace Saml2Core
             cookieBuilder.Domain = cookieBuilder.Domain;
             cookieBuilder.HttpOnly = cookieBuilder.HttpOnly;
             cookieBuilder.IsEssential = cookieBuilder.IsEssential;
-            cookieBuilder.Expiration = StringHelpers.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, cookieBuilder.Expiration);
-            cookieBuilder.MaxAge = StringHelpers.ParseValueOrDefault<TimeSpan?>(null, _invariantNullableTimeSpanParse, cookieBuilder.MaxAge);
+            cookieBuilder.Expiration = StringExtensions.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, cookieBuilder.Expiration);
+            cookieBuilder.MaxAge = StringExtensions.ParseValueOrDefault<TimeSpan?>(null, _invariantNullableTimeSpanParse, cookieBuilder.MaxAge);
             cookieBuilder.Name = cookieBuilder.Name;
             cookieBuilder.Path = cookieBuilder.Path;
             cookieBuilder.SameSite = cookieBuilder.SameSite;

@@ -22,32 +22,27 @@
 
 namespace Saml2Core
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    public enum Saml2LogoutBehaviour
+    public enum ContactType
     {
         /// <summary>
-        /// Emits a 302 response to redirect the user agent to
-        /// the Saml2 provider using a GET request.
+        /// Technical staff
         /// </summary>
-        RedirectGet = 0,
-
+        Technical,
         /// <summary>
-        /// Emits an HTML form to redirect the user agent to
-        /// theSaml2 provider using a POST request.
+        /// Support staff
         /// </summary>
-        FormPost = 1
-
+        Support,
         /// <summary>
-        /// Creates an artifact and send it the Idp artifact endpoint
-        /// using GET request.
+        /// Administrative staff
         /// </summary>
-        //Artifact = 2,
-
+        Administrative,
         /// <summary>
-        /// Creates an SOAP request and send it the Idp.
+        /// Billing staff
         /// </summary>
-        //SOAP = 3
+        Billing,
+        /// <summary>
+        /// Other
+        /// </summary>
+        Other
     }
 }

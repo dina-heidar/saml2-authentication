@@ -3,10 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Saml.MetadataBuilder;
-using Saml.MetadataBuilder.Constants;
 using Saml2Core;
-using Saml2Core.Metadata;
 using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -57,16 +54,16 @@ public class Program
             options.CreateMetadataFile = true;
             options.Metadata = new Saml2Metadata
             {
-                ContactPersons = new Saml2MetadataContactPerson
+                ContactPersons = new ContactPerson
                 {
                     Company = "OTS",
-                    ContactType = ContactEnumType.Billing,
+                    ContactType = ContactType.Billing,
                     EmailAddress = "dina.heidar@la.gov",
                     TelephoneNumber = "123-234-1234",
                     GivenName = "Heidar",
                     Surname = "Dina"
                 },
-                Organization = new Saml2MetadataOrganization
+                Organization = new Organization
                 {
                     OrganizationDisplayName = "Louisiana State Government",
                     OrganizationName = "Department of Corrections IdentityApi",
@@ -74,7 +71,7 @@ public class Program
                     Language = "en-US"
                 },
                 // add an sp logo to the idp sign in page 
-                UiInfo = new Saml2MetadataUiInfo
+                UiInfo = new UiInfo
                 {
                     Language = "en-US",
                     DisplayName = "EPSM",
@@ -85,9 +82,36 @@ public class Program
                     LogoWidth = "24",
                     LogoUriValue = new Uri("https://epsm.la.gov/logo.png"),
                     KeywordValues = new[] { "set", "ready", "go" }
-                }
-                //service
-                //attribute consumer service
+                },
+                AttributeConsumingService =  new AttributeConsumingService
+                {
+                    ServiceDescriptions = "testing service",
+                    ServiceNames = "primary",
+                    RequestedAttributes = new RequestedAttribute[]
+                    {
+                        new RequestedAttribute
+                        {
+                            Name ="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+                            NameFormat = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                            FriendlyName = "E-Mail Address",                          
+                            IsRequiredField= true
+                        },
+                        new RequestedAttribute
+                        {
+                            Name ="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+                            NameFormat = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                            FriendlyName = "Surname",
+                            IsRequiredField= true
+                        },
+                        new RequestedAttribute
+                        {
+                            Name ="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+                            NameFormat = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                            FriendlyName = "Given Name",
+                            IsRequiredField= true
+                        }
+                    }
+                }               
                 //caching
                 //valid until
             };

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>ASP.NET Core middleware that enables an application to support the SAML2 SSO authentication workflow. This middleware is opensource (free to use) and is not dependent on any .NET Framework libraries. It has been tested with ADFS and IdentityServer4 as well.</Description>
-    <TargetFrameworks>net6.0;net7.0;netstandard2.0;netstandard2.1</TargetFrameworks>   
+    <TargetFrameworks>net6.0;net7.0;netstandard2.0;netstandard2.1</TargetFrameworks>
     <LangVersion>Latest</LangVersion>
     <RootNamespace>Saml2Core</RootNamespace>
     <Nullable>disable</Nullable>
@@ -37,7 +37,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\saml-metadata\src\MetadataBuilder\MetadataBuilder.csproj" />
+    <ProjectReference Include="..\..\..\saml-metadata\src\MetadataBuilder\MetadataBuilder.csproj">
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>
@@ -53,6 +55,6 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-  </ItemGroup> 
+  </ItemGroup>
 
 </Project>

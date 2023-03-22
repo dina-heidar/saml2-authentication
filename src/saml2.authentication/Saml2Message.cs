@@ -22,7 +22,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -36,7 +35,6 @@ using MetadataBuilder.Schema.Metadata;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Protocols;
 using Saml.MetadataBuilder;
-using Saml2Core.Helpers;
 using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
@@ -725,7 +723,7 @@ namespace Saml2Core
             if (string.IsNullOrEmpty(parameter))
                 throw LogHelper.LogArgumentNullException(nameof(parameter));
 
-            var artifact = ArtifactHelpers.GetParsedArtifact(parameter);
+            var artifact = ArtifactExtensions.GetParsedArtifact(parameter);
 
             return artifact;
         }
@@ -743,7 +741,7 @@ namespace Saml2Core
             var ars = idpDescriptor.ArtifactResolutionServices.Select(a => (ushort)a.Index).ToArray();
             var validIssuers = options.ValidIssuers.Prepend(options.Configuration.EntityID).ToArray();
 
-            return ArtifactHelpers.IsValid(artifactString, ars, validIssuers);
+            return ArtifactExtensions.IsValid(artifactString, ars, validIssuers);
         }
         #endregion
 
@@ -754,7 +752,7 @@ namespace Saml2Core
         /// </summary>
         /// <param name="requestedAuthnContext">The requested authn context.</param>
         /// <returns></returns>
-        private static RequestedAuthnContextType GetRequestedAuthnContext(RequestedAuthnContext requestedAuthnContext)
+        private static RequestedAuthnContextType GetRequestedAuthnContext(RequestedAuthenticationContext requestedAuthnContext)
         {
             if (requestedAuthnContext != null)
             {
@@ -1064,7 +1062,7 @@ namespace Saml2Core
             if (string.IsNullOrEmpty(sourceIdValue))
                 throw LogHelper.LogArgumentNullException(nameof(sourceIdValue));
 
-            var artifactString = ArtifactHelpers.CreateArtifact(sourceIdValue, endpointIndexValue);
+            var artifactString = ArtifactExtensions.CreateArtifact(sourceIdValue, endpointIndexValue);
 
             return artifactString;
         }

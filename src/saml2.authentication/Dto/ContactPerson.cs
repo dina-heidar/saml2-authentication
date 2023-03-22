@@ -20,79 +20,51 @@
 // SOFTWARE.
 //
 
-using System;
-
-namespace Saml2Core.Metadata
+namespace Saml2Core
 {
-    public class Saml2MetadataUiInfo
+    public class ContactPerson
     {
         /// <summary>
-        /// Gets or sets the display name.
+        /// Gets or sets the company.
         /// </summary>
         /// <value>
-        /// The display name.
+        /// The company.
         /// </value>
-        public string DisplayName { get; set; }
+        public string Company { get; set; }
         /// <summary>
-        /// Gets or sets the language.
+        /// Gets or sets the type of the contact.
         /// </summary>
         /// <value>
-        /// The language.
+        /// The type of the contact.
         /// </value>
-        public string Language { get; set; }
-
+        public ContactType ContactType { get; set; }
         /// <summary>
-        /// Gets or sets the description.
+        /// Gets or sets the email address.
         /// </summary>
         /// <value>
-        /// The description.
+        /// The email address.
         /// </value>
-        public string Description { get; set; }
-
+        public string EmailAddress { get; set; }
         /// <summary>
-        /// Gets or sets the information URL.
+        /// Gets or sets the telephone number.
         /// </summary>
         /// <value>
-        /// The information URL.
+        /// The telephone number.
         /// </value>
-        public Uri InformationURL { get; set; }
-
+        public string TelephoneNumber { get; set; }
         /// <summary>
-        /// Gets or sets the privacy statement URL.
+        /// Gets or sets the name of the given.
         /// </summary>
         /// <value>
-        /// The privacy statement URL.
+        /// The name of the given.
         /// </value>
-        public Uri PrivacyStatementURL { get; set; }
-
+        public string GivenName { get; set; }
         /// <summary>
-        /// Gets or sets the height.
+        /// Gets or sets the surname.
         /// </summary>
         /// <value>
-        /// The rendered height of the logo measured in pixels.
+        /// The surname.
         /// </value>
-        public string LogoHeight { get; set; }
-
-        /// <summary>
-        /// Gets or sets the width.
-        /// </summary>
-        /// <value>
-        /// The rendered width of the logo measured in pixels.
-        /// </value>
-        public string LogoWidth { get; set; }
-        /// <summary>
-        /// Gets or sets the value as a Url.
-        /// </summary>
-        /// <value>
-        /// The value.
-        /// </value>
-        public Uri LogoUriValue { get; set; }
-        /// <summary>
-        /// Gets or sets the values.
-        /// </summary>
-        /// <value>
-        /// The values.
-        /// </value>
-        public string[] KeywordValues { get; set; }
+        public string Surname { get; set; }
     }
 }

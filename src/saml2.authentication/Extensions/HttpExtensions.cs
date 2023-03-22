@@ -20,34 +20,31 @@
 // SOFTWARE.
 //
 
+using System;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
+
 namespace Saml2Core
 {
     /// <summary>
     /// 
     /// </summary>
-    public enum Saml2LogoutBehaviour
+    public static class HttpExtensions
     {
         /// <summary>
-        /// Emits a 302 response to redirect the user agent to
-        /// the Saml2 provider using a GET request.
+        /// Deletes all request identifier cookies.
         /// </summary>
-        RedirectGet = 0,
-
-        /// <summary>
-        /// Emits an HTML form to redirect the user agent to
-        /// theSaml2 provider using a POST request.
-        /// </summary>
-        FormPost = 1
-
-        /// <summary>
-        /// Creates an artifact and send it the Idp artifact endpoint
-        /// using GET request.
-        /// </summary>
-        //Artifact = 2,
-
-        /// <summary>
-        /// Creates an SOAP request and send it the Idp.
-        /// </summary>
-        //SOAP = 3
+        /// <param name="response">The response.</param>
+        /// <param name="request">The request.</param>
+        /// <param name="samlCookieName">Name of the saml cookie.</param>
+        public static void DeleteAllSaml2RequestCookies(this HttpResponse response, HttpRequest request, string samlCookieName)
+        {
+            var cookies = request.Cookies;
+            foreach (var cookie in cookies.Where(c => c.Key.StartsWith(samlCookieName)))
+            {
+                response.Cookies.Append(cookie.Key, "", new CookieOptions() { Expires = DateTime.Now.AddDays(-1) });
+                response.Cookies.Delete(cookie.Key);
+            }
+        }
     }
 }

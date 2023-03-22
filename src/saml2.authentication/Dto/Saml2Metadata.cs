@@ -24,7 +24,7 @@ using System;
 using System.Security.Cryptography.X509Certificates;
 using Saml.MetadataBuilder;
 
-namespace Saml2Core.Metadata
+namespace Saml2Core
 {
     public class Saml2Metadata
     {
@@ -72,16 +72,6 @@ namespace Saml2Core.Metadata
         public string Id { get; set; }
         /// <summary>
         /// <para><b>Optional</b><br/> 
-        /// Used to include metadata extensions that are agreed upon 
-        /// between a metadata publisher and the consumer.
-        /// </para>
-        /// </summary>
-        /// <value>
-        /// The extensions.
-        /// </value>
-        public Extension Extensions { get; set; } = null;
-        /// <summary>
-        /// <para><b>Optional</b><br/> 
         /// Used to identifying the organization 
         /// responsible for the SAML entity, it possible 
         /// to include details such as organization’s name, 
@@ -91,7 +81,7 @@ namespace Saml2Core.Metadata
         /// <value>
         /// The organization.
         /// </value>
-        public Saml2MetadataOrganization Organization { get; set; }
+        public Organization Organization { get; set; }
         // <summary>
         /// <para><b>Optional</b><br/> 
         /// used to provide various kind of information about 
@@ -102,7 +92,7 @@ namespace Saml2Core.Metadata
         /// <value>
         /// The contact persons.
         /// </value>
-        public Saml2MetadataContactPerson ContactPersons { get; set; }
+        public ContactPerson ContactPersons { get; set; }
         /// <summary>
         /// Gets or sets the UI information displayed 
         /// during sign in on Idp.
@@ -110,7 +100,7 @@ namespace Saml2Core.Metadata
         /// <value>
         /// The UI information.
         /// </value>
-        public Saml2MetadataUiInfo UiInfo { get; set; }
+        public UiInfo UiInfo { get; set; }
         /// <summary>
         /// Gets or sets the attribute consuming service.
         /// </summary>
@@ -118,13 +108,6 @@ namespace Saml2Core.Metadata
         /// The attribute consuming service.
         /// </value>
         public AttributeConsumingService AttributeConsumingService { get; set; }
-        /// <summary>
-        /// Gets or sets the UI infos.
-        /// </summary>
-        /// <value>
-        /// The UI infos.
-        /// </value>
-        public UiInfo UiInfos { get; set; }
         /// <summary>
         /// Signs the entire metadata.
         /// </summary>

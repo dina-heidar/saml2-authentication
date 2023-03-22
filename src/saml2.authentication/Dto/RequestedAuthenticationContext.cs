@@ -20,40 +20,30 @@
 // SOFTWARE.
 //
 
-using System;
-
-namespace Saml2Core.Metadata
+namespace Saml2Core
 {
-    public class Saml2MetadataOrganization
+    public class RequestedAuthenticationContext
     {
         /// <summary>
-        /// Gets or sets the display name of the organization.
+        /// Gets or sets the authn context reference types.
         /// </summary>
         /// <value>
-        /// The display name of the organization.
+        /// The authn context reference types.
         /// </value>
-        public string OrganizationDisplayName { get; set; }
+        public string[] AuthnContextRefTypes { get; set; }
         /// <summary>
-        /// Gets or sets the name of the organization.
+        /// Gets or sets the type of the comparison.
         /// </summary>
         /// <value>
-        /// The name of the organization.
+        /// The type of the comparison.
         /// </value>
-        public string OrganizationName { get; set; }
+        public string ComparisonType { get; set; }
         /// <summary>
-        /// Gets or sets the organization URL.
+        /// Gets the authn context class reference.
         /// </summary>
         /// <value>
-        /// The organization URL.
+        /// The authn context class reference.
         /// </value>
-        public Uri OrganizationURL { get; set; }
-        /// <summary>
-        /// Gets or sets the language culture format.
-        /// eg `en-US`
-        /// </summary>
-        /// <value>
-        /// The language.
-        /// </value>
-        public string Language { get; set; } = "en-US";
+        public string AuthnContextClassRef { get; private set; } = "AuthnContextClassRef";
     }
 }

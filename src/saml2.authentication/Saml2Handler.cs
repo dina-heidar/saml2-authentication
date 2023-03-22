@@ -35,7 +35,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Saml.MetadataBuilder;
-using Saml2Core.Helpers;
 using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
