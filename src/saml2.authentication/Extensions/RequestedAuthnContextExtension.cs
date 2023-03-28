@@ -27,6 +27,11 @@ namespace Saml2Core
 
     public static class RequestedAuthnContextTypes
     {
+        /// <summary>
+        /// Sets authentication as forms the authentication.
+        /// </summary>
+        /// <param name="comparisonType">Type of the comparison.</param>
+        /// <returns></returns>
         public static RequestedAuthenticationContext FormsAuthentication(string comparisonType = "exact")
         {
             return new RequestedAuthenticationContext
@@ -36,6 +41,11 @@ namespace Saml2Core
             };
         }
 
+        /// <summary>
+        /// Sets authentication windows authentication (WIA).
+        /// </summary>
+        /// <param name="comparisonType">Type of the comparison.</param>
+        /// <returns></returns>
         public static RequestedAuthenticationContext WindowsAuthentication(string comparisonType = "exact")
         {
             return new RequestedAuthenticationContext
@@ -45,6 +55,12 @@ namespace Saml2Core
             };
         }
 
+        /// <summary>
+        /// Customs the specified authn context reference types.
+        /// </summary>
+        /// <param name="authnContextRefTypes">The authn context reference types.</param>
+        /// <param name="comparisonTypes">The comparison types.</param>
+        /// <returns></returns>
         public static RequestedAuthenticationContext Custom(string authnContextRefTypes,
             string comparisonTypes = "exact")
         {

@@ -20,8 +20,8 @@
 // SOFTWARE.
 //
 
-using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 using Saml.MetadataBuilder;
 
 namespace Saml2Core
@@ -32,6 +32,9 @@ namespace Saml2Core
         {
             var bsm = new BasicSpMetadata
             {
+                Id = Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId(),//options.Metadata.Id,
+                ValidUntil = options.Metadata.ValidUntil,
+                CacheDuration = options.Metadata.CacheDuration,
                 Signature = options.Metadata.Signature,
                 ContactPersons = new Saml.MetadataBuilder.ContactPerson[]
                        {
@@ -112,12 +115,12 @@ namespace Saml2Core
                 SingleLogoutServiceEndpoint = GetSingleLogoutServiceEndpoint(options.ResponseLogoutBinding, options.SignOutPath, request),
             };
 
-            return bsm;           
+            return bsm;
         }
 
         private static IndexedEndpoint GetAssertionConsumerService(Saml2ResponseProtocolBinding responseProtocolBinding,
            PathString callbackPath, HttpRequest request)
-        {           
+        {
             var url = request.Scheme + "://" + request.Host.Value + callbackPath;
 
             // if post
@@ -134,7 +137,7 @@ namespace Saml2Core
 
         private static IndexedEndpoint GetSingleLogoutServiceEndpoint(Saml2ResponseLogoutBinding responseLogoutBinding,
             PathString signoutPath, HttpRequest request)
-        {         
+        {
             var url = request.Scheme + "://" + request.Host.Value + signoutPath;
 
             // if post

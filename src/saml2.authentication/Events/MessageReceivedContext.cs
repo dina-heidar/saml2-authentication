@@ -44,6 +44,6 @@ namespace Saml2Core
         /// <summary>
         /// The <see cref="Saml2Message"/> received on this request.
         /// </summary>
-        public Saml2Message ProtocolMessage { get; set; } = default!;
+        internal Saml2Message ProtocolMessage { get; set; } = default!;
     }
 }

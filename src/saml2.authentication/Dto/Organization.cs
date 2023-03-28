@@ -54,6 +54,6 @@ namespace Saml2Core
         /// <value>
         /// The language.
         /// </value>
-        public string Language { get; set; } = "en-US";
+        public string Language { get; set; } //= "en-US";
     }
 }

@@ -132,7 +132,7 @@ namespace Saml2Core
                     saml2Message.SamlArt == null &&
                     saml2Message.ArtifactResponse == null)
                 {
-                    Logger.SignInWithoutWResult();
+                    _logger.SignInWithoutWResult();
                     return HandleRequestResult.Fail(Properties.Resources.SignInMessageSamlResponseIsMissing, properties);
                 }
 
@@ -214,7 +214,9 @@ namespace Saml2Core
 
                 if (_configuration == null)
                 {
+                    _logger.UpdatingConfiguration();
                     _configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
+                    _logger.ConfigurationManagerGetConfigurationAsyncCalled();
                 }
 
                 var idpSigningCertificates = Saml2Message.GetIdpDescriptor(Options.Configuration).SigningCertificates;
@@ -248,6 +250,7 @@ namespace Saml2Core
                 if (validator.CanReadToken(token))
                 {
                     principal = validator.ValidateToken(token, tvp, out parsedToken);
+                    _logger.TokenValidatedHandledResponse();
                 }
 
                 if (principal == null)
@@ -272,6 +275,8 @@ namespace Saml2Core
                 }
 
                 ClaimsIdentity identity = new ClaimsIdentity(principal.Claims, Scheme.Name);
+
+                _logger.RetrievingClaims();
 
                 if (!string.IsNullOrEmpty(session.SessionIndex))
                 {
@@ -318,11 +323,13 @@ namespace Saml2Core
         {
             if (Options.RemoteSignOutPath.HasValue && Options.RemoteSignOutPath == Request.Path)
             {
+                Logger.RemoteSignOut();
                 // we've received a remote sign-out request
                 return HandleRemoteSignOutAsync();
             }
             else if (Options.SignOutPath.HasValue && Options.SignOutPath == Request.Path)
             {
+                Logger.SignOutCallbackRecieved();
                 return HandleSignOutCallbackAsync();
             }
             return base.HandleRequestAsync();
@@ -350,11 +357,11 @@ namespace Saml2Core
                 properties.RedirectUri = CurrentUri;
             }
 
-            Logger.PostAuthenticationLocalRedirect(properties.RedirectUri);
-
             if (_configuration == null && Options.ConfigurationManager != null)
             {
+                Logger.UpdatingConfiguration();
                 _configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
+                Logger.ConfigurationManagerGetConfigurationAsyncCalled();
                 Options.Configuration = _configuration;
             }
 
@@ -396,15 +403,19 @@ namespace Saml2Core
             Response.Cookies.Append(Options.Saml2CoreCookie.Name, authnRequestId.Base64Encode(),
                 Options.Saml2CoreCookie.Build(Context));
 
+            Logger.CreateSignInRequest();
             var samlRequest = saml2Message.CreateSignInRequest(Options, authnRequestId, relayState);
+            Logger.SignInRequestCreated();
 
             if (Options.AuthenticationMethod == Saml2AuthenticationBehaviour.RedirectGet)
             {
+                Logger.RedirectAuthenticationLocalRedirect(properties.RedirectUri);
                 //call idp
                 Response.Redirect(samlRequest);
             }
             else if (Options.AuthenticationMethod == Saml2AuthenticationBehaviour.FormPost)
             {
+                Logger.PostAuthenticationLocalRedirect(properties.RedirectUri);
                 var content = samlRequest;
                 var buffer = Encoding.UTF8.GetBytes(content);
 
@@ -628,12 +639,15 @@ namespace Saml2Core
         //idp sending a fan logout request
         protected virtual async Task<bool> HandleRemoteSignOutAsync()
         {
+            //TODO SLO
             return true;
         }
 
 
         protected virtual async Task<ResponseType> RedeemFromArtifactResolveServiceAsync(Saml2Message saml2Message)
         {
+            Logger.RedeemingArtifactForAssertion();
+
             var artifactValue = Saml2Message.GetArtifact(saml2Message.SamlArt);
             var arsIndex = (ushort)artifactValue.EndpointIndex;
 
@@ -680,6 +694,7 @@ namespace Saml2Core
             {
                 throw new Saml2Exception(responseMessage.ReasonPhrase);
             }
+            Logger.ArtifactResolutionResponeReceived();
             return saml2Message.GetArtifactResponseToken(saml2Message.ArtifactResponse, Options);
         }
 
@@ -694,7 +709,6 @@ namespace Saml2Core
             {
                 SamlArt = saml2Message.SamlArt,
             };
-
 
             var context = new ArtifactResolveReceivedContext(Context, Scheme, Options, properties)
             {
@@ -714,10 +728,8 @@ namespace Saml2Core
                     Logger.ArtifactResolveReceivedContextSkipped();
                 }
             }
-
             return context;
         }
-
         #endregion
     }
 }

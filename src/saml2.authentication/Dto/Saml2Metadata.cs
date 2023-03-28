@@ -41,28 +41,19 @@ namespace Saml2Core
         public DateTime ValidUntil { get; set; }
         /// <summary>
         /// <para><b>Optional</b><br/>
-        /// The maximum length of time a consumer should cache the metadata.<br/>
-        /// The time interval is specified in the following form "PnYnMnDTnHnMnS" where:<br/>
-        /// - P indicates the period(required)<br/>
-        /// - nY indicates the number of years<br/>
-        /// - nM indicates the number of months<br/>
-        /// - nD indicates the number of days<br/>
-        /// - T indicates the start of a time section(required if you are going to specify hours, minutes, or seconds)<br/>
-        /// - nH indicates the number of hours<br/>
-        /// - nM indicates the number of minutes<br/>
-        /// - nS indicates the number of seconds<br/>
+        /// The maximum length of time in seconds a consumer should cache the metadata.<br/>       
         /// </para>
         /// </summary>
         /// <value>
-        /// The duration of the cache.
+        /// The duration of the cache in seconds.
         /// </value>
-        /// <example>PT604800S</example>
+        /// <example>360000</example>
         public string CacheDuration { get; set; }
         /// <summary>
         /// <para><b>Optional</b><br/> 
         /// A document-unique identifier 
         /// for the element, typically used as a reference point when signing. <br/>
-        /// Example: 35D0C44A-52CE-4D2F-BE06-AE5F00C30AA7
+        /// Example: _35D0C44A-52CE-4D2F-BE06-AE5F00C30AA7
         /// </para>
         /// </summary>
         /// <value>
@@ -115,12 +106,6 @@ namespace Saml2Core
         /// The signature.
         /// </value>
         public X509Certificate2 Signature { get; set; }
-        /// <summary>
-        /// Gets or sets the assertion consumer service.
-        /// </summary>
-        /// <value>
-        /// The assertion consumer service.
-        /// </value>
         internal string EntityID { get; set; }
         internal string NameIdFormat { get; set; }
         internal bool AuthnRequestsSigned { get; set; }

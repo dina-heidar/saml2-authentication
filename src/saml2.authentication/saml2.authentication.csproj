@@ -1,31 +1,34 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>ASP.NET Core middleware that enables an application to support the SAML2 SSO authentication workflow. This middleware is opensource (free to use) and is not dependent on any .NET Framework libraries. It has been tested with ADFS and IdentityServer4 as well.</Description>
+    <Description>This library enables a dotnet application to authenticate using SAML2 SSO authentication workflow. It supports HTTP-POST, HTTP-GET, HTTP-Artifact SSO bindings and  HTTP-POST, HTTP-GET SLO bindings. This library is opensource (free to use) and is not dependent on any .NET Framework libraries. It has been tested with ADFS and IdentityServer as well.</Description>
     <TargetFrameworks>net6.0;net7.0;netstandard2.0;netstandard2.1</TargetFrameworks>
     <LangVersion>Latest</LangVersion>
-    <RootNamespace>Saml2Core</RootNamespace>
+    <PackageId>Saml2.Authentication</PackageId>
+    <RootNamespace>Saml2.Authentication</RootNamespace>
     <Nullable>disable</Nullable>
     <IsTrimmable>true</IsTrimmable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageTags>authentication;security;saml2;.net core 2.1, .net core 2.2, saml2 core, saml2.core, saml, saml SSO, SSO, adfs</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <Version>4.0.0</Version>
-    <PackageLicenseUrl>https://mit-license.org/</PackageLicenseUrl>
+    <Version>6.0.1-alpha</Version>   
     <Authors>Dina Heidar</Authors>
     <Company></Company>
-    <AssemblyVersion>4.0.0.0</AssemblyVersion>
-    <FileVersion>4.0.0.0</FileVersion>
+    <Product>Saml2.Authentication</Product>
+    <!--<PackageReadmeFile>readme.txt</PackageReadmeFile>-->
+    <AssemblyVersion>6.0.1.0</AssemblyVersion>
+    <FileVersion>6.0.1.0</FileVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/dina-heidar/saml2-authentication</PackageProjectUrl>
     <RepositoryUrl>https://github.com/dina-heidar/saml2-authentication</RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
-    <PackageReleaseNotes>Linux metadata file fix</PackageReleaseNotes>
+    <PackageReleaseNotes>new features; artifact and post bindings;</PackageReleaseNotes>
     <RepositoryType>Git</RepositoryType>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
-
     <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
@@ -36,25 +39,22 @@
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="7.0.2" />
   </ItemGroup>
 
+  <!--<ItemGroup>
+    <None Include="readme.txt" Pack="true" PackagePath="\"/>
+  </ItemGroup>-->
+
   <ItemGroup>
     <ProjectReference Include="..\..\..\saml-metadata\src\MetadataBuilder\MetadataBuilder.csproj">
       <PrivateAssets>all</PrivateAssets>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <IncludeAssets>MetadataBuilder.dll</IncludeAssets>
     </ProjectReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
+  <Target DependsOnTargets="ResolveReferences" Name="CopyProjectReferencesToPackage">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))"/>
+    </ItemGroup>
+  </Target>
 
 </Project>

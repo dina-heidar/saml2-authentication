@@ -153,15 +153,6 @@ namespace Saml2Core
             public const string HTTP_Artifact = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact";
             public const string HTTP_SOAP = "urn:oasis:names:tc:SAML:2.0:bindings:SOAP";
         }
-        public static class Tracing
-        {
-            public static readonly string Basic = Saml2Core.Tracing.TraceNames.Basic;
-            public static readonly string Stores = Saml2Core.Tracing.TraceNames.Store;
-            public static readonly string Cache = Saml2Core.Tracing.TraceNames.Cache;
-            public static readonly string Validation = Saml2Core.Tracing.TraceNames.Validation;
-            public static readonly string Services = Saml2Core.Tracing.TraceNames.Services;
-            public static readonly string ServiceVersion = Saml2Core.Tracing.ServiceVersion;
-        }
 
         public static class Reasons
         {

@@ -21,8 +21,6 @@
 //
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
@@ -199,13 +197,19 @@ namespace Saml2Core
                     //output as xml
                     var xmlDoc = _writer.Output(bsm);
 
+                    //validate the saml sp metadata file
+                    if (options.ValidateMetadata)
+                    {
+                        _writer.Validate(xmlDoc);
+                    }
+
                     //save
-                    xmlDoc.Save(System.IO.Path.Combine(options.DefaultMetadataFolderLocation, 
+                    xmlDoc.Save(Path.Combine(options.DefaultMetadataFolderLocation,
                         options.DefaultMetadataFileName + ".xml"));
                 }
             }
         }
-        
+
         private sealed class StringSerializer : IDataSerializer<string>
         {
             public string Deserialize(byte[] data)

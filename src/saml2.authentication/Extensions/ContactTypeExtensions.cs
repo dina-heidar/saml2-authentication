@@ -28,7 +28,7 @@ namespace Saml2Core
     {
         public static ContactEnumType ToContactEnumType(this ContactType value)
         {
-            switch(value)
+            switch (value)
             {
                 case ContactType.Billing:
                     return ContactEnumType.Billing;

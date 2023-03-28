@@ -22,6 +22,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -39,7 +40,7 @@ using static Saml2Core.Saml2Constants;
 
 namespace Saml2Core
 {
-    public class Saml2Message : AuthenticationProtocolMessage
+    internal class Saml2Message : AuthenticationProtocolMessage
     {
         #region Constructors
         public Saml2Message()
@@ -977,6 +978,7 @@ namespace Saml2Core
         /// <typeparam name="T"></typeparam>
         /// <param name="item">The item.</param>
         /// <returns></returns>
+        //[RequiresUnreferencedCode("Calls System.Xml.Serialization.XmlSerializer.XmlSerializer(Type)")]        
         private static XmlDocument Serialize<T>(T item) where T : class
         {
             var xmlTemplate = string.Empty;
@@ -1000,6 +1002,7 @@ namespace Saml2Core
         /// <typeparam name="T"></typeparam>
         /// <param name="xmlString">The XML string.</param>
         /// <returns></returns>
+        //[RequiresUnreferencedCode("Calls System.Xml.Serialization.XmlSerializer.XmlSerializer(Type)")]
         private static T DeSerializeToClass<T>(string xmlString) where T : class
         {
             var xmlSerializer = new XmlSerializer(typeof(T));
@@ -1026,6 +1029,7 @@ namespace Saml2Core
         /// <param name="namespaceString">The namespace string.</param>
         /// <param name="isNullable">if set to <c>true</c> [is nullable].</param>
         /// <returns></returns>
+        //[RequiresUnreferencedCode("Calls System.Xml.Serialization.XmlSerializer.XmlSerializer(Type, XmlRootAttribute)")]
         private static T DeSerializeToClass<T>(string xmlString,
             string elementName = null, string namespaceString = null, bool isNullable = false) where T : class
         {

@@ -1,9 +1,9 @@
 __________________________________________________________
 
-Saml2Core Nuget Package
+Saml2.Authentication NuGet Package
 ___________________________________________________________
 
-Welcome and thank you for installing Saml2Core Nuget Package! 
+Welcome and thank you for installing Saml2.Authentication (previously Saml2Core) NuGet Package! 
 
 MIT License
 
@@ -26,10 +26,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
-Getting started Documentation
-________________________________
-for complete startup documentation you can read more on github:
-
-https://github.com/dheida1/Saml2Core/blob/master/README.md

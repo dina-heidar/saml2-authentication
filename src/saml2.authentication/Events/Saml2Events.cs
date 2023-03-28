@@ -36,13 +36,13 @@ namespace Saml2Core
         /// <summary>
         /// Invoked when a protocol message is first received.
         /// </summary>
-        public Func<MessageReceivedContext, Task> OnMessageReceived { get; set; } = context => Task.CompletedTask;
+        //public Func<MessageReceivedContext, Task> OnMessageReceived { get; set; } = context => Task.CompletedTask;
         public Func<ArtifactResolveReceivedContext, Task> OnArtifactResolveReceived { get; set; } = context => Task.CompletedTask;
 
         /// <summary>
         /// Invoked to manipulate redirects to the identity provider for SignIn, SignOut, or Challenge.
         /// </summary>
-        public Func<RedirectContext, Task> OnRedirectToIdentityProvider { get; set; } = context => Task.CompletedTask;
+        //public Func<RedirectContext, Task> OnRedirectToIdentityProvider { get; set; } = context => Task.CompletedTask;
 
         //        /// <summary>
         //        /// Invoked when a wsignoutcleanup request is received at the RemoteSignOutPath endpoint.
@@ -67,7 +67,7 @@ namespace Saml2Core
         /// <summary>
         /// Invoked when a protocol message is first received.
         /// </summary>
-        public virtual Task MessageReceived(MessageReceivedContext context) => OnMessageReceived(context);
+        //public virtual Task MessageReceived(MessageReceivedContext context) => OnMessageReceived(context);
 
         public virtual Task ArtifactResolveReceived(ArtifactResolveReceivedContext context) => OnArtifactResolveReceived(context);
 
@@ -78,7 +78,7 @@ namespace Saml2Core
         /// The ProtocolMessage can also be used to add or customize
         /// parameters sent to the identity provider.
         /// </summary>     
-        public virtual Task RedirectToIdentityProvider(RedirectContext context) => OnRedirectToIdentityProvider(context);
+       // public virtual Task RedirectToIdentityProvider(RedirectContext context) => OnRedirectToIdentityProvider(context);
 
         //        /// <summary>
         //        /// Invoked when a wsignoutcleanup request is received at the RemoteSignOutPath endpoint.

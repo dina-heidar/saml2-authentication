@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Saml2Core;
 using System;
 using System.Security.Cryptography.X509Certificates;
@@ -15,6 +16,12 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        var logger = LoggerFactory.Create(config =>
+        {
+            config.AddConsole();
+        }).CreateLogger("Program");
+
         var environment = builder.Environment;
 
         // Add services to the container.
@@ -31,7 +38,7 @@ public class Program
             options.AuthenticationScheme = Saml2Defaults.AuthenticationScheme;
             options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             options.MetadataAddress = "https://adfs2.la.gov/federationmetadata/2007-06/federationmetadata.xml";
-            options.ForceAuthn = true;
+            //options.ForceAuthn = true;
             options.VerifySignatureOnly = false;
 
             //must match with metadata file
@@ -54,6 +61,9 @@ public class Program
             options.CreateMetadataFile = true;
             options.Metadata = new Saml2Metadata
             {
+                CacheDuration = "360000",
+                ValidUntil = DateTime.UtcNow.AddDays(365),
+                Id = Guid.NewGuid().ToString(),
                 ContactPersons = new ContactPerson
                 {
                     Company = "OTS",
@@ -65,10 +75,10 @@ public class Program
                 },
                 Organization = new Organization
                 {
-                    OrganizationDisplayName = "Louisiana State Government",
+                    //OrganizationDisplayName = "Louisiana State Government",
                     OrganizationName = "Department of Corrections IdentityApi",
-                    OrganizationURL = new Uri("https://identityAPI.doc.la.gov"),
-                    Language = "en-US"
+                    //OrganizationURL = new Uri("https://identityAPI.doc.la.gov"),
+                    //Language = "en-US"
                 },
                 // add an sp logo to the idp sign in page 
                 UiInfo = new UiInfo
@@ -111,10 +121,10 @@ public class Program
                             IsRequiredField= true
                         }
                     }
-                }               
-                //caching
-                //valid until
-            };
+                },
+                Signature = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
+                     "0n3wh33L", X509KeyStorageFlags.Exportable)
+        };
 
             if (environment.IsDevelopment())
             {
