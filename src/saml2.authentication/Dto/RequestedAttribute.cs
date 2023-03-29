@@ -20,7 +20,7 @@
 // SOFTWARE.
 //
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     public class RequestedAttribute
     {

@@ -27,9 +27,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols;
-using Saml.MetadataBuilder;
+using Saml2Metadata;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     /// <summary>
     /// 
@@ -81,7 +81,7 @@ namespace Saml2Core
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<Saml2Options>, Saml2PostConfigureOptions>());
             builder.Services.TryAddEnumerable(ServiceDescriptor.Transient<IDocumentRetriever, FileDocumentRetriever>());
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpContextAccessor, HttpContextAccessor>());
-            builder.Services.AddSamlMetadatBuilder();
+            builder.Services.AddSaml2Metadata();
 
             return builder.AddRemoteScheme<Saml2Options, Saml2Handler>(authenticationScheme, displayName, configureOptions);
         }

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Saml.MetadataBuilder;
-using Saml2Core;
+using Saml2Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 namespace RazorPages.Redirect.PostBinding;

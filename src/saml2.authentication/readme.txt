@@ -3,7 +3,7 @@ __________________________________________________________
 Saml2.Authentication NuGet Package
 ___________________________________________________________
 
-Welcome and thank you for installing Saml2.Authentication (previously Saml2Core) NuGet Package! 
+Welcome and thank you for installing Saml2.Authentication (previously Saml2.Authentication) NuGet Package! 
 
 MIT License
 

@@ -25,7 +25,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens.Saml2;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
 
     /// <summary>

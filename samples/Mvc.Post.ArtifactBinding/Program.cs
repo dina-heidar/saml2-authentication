@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Saml2Core;
+using Saml2Authentication;
 using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;

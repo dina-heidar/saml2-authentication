@@ -22,9 +22,9 @@
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using Saml.MetadataBuilder;
+using Saml2Metadata;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     public class RedirectContext : PropertiesContext<Saml2Options>
     {

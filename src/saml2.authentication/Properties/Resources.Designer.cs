@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Saml2Core.Properties
+namespace Saml2Authentication.Properties
 {
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.

@@ -20,7 +20,7 @@
 // SOFTWARE.
 //
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     public class Saml2Constants
     {
@@ -143,7 +143,7 @@ namespace Saml2Core
         }
         public static class Saml2ClaimTypes
         {
-            public const string Namespace = "http://saml2Core/";
+            public const string Namespace = "http://saml2/";
             public const string SessionIndex = $"{Namespace}sid";
         }
         public static class ProtocolBindings

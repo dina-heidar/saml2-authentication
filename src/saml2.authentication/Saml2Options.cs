@@ -31,10 +31,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Tokens.Saml2;
-using Saml.MetadataBuilder;
-using static Saml2Core.Saml2Constants;
+using Saml2Metadata;
+using static Saml2Authentication.Saml2Constants;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     public class Saml2Options : RemoteAuthenticationOptions
     {
@@ -83,18 +83,18 @@ namespace Saml2Core
             Events = new Saml2Events();
 
             //metadata
-            Metadata = new Saml2Metadata();
+            Metadata = new Saml2MetadataXml();
             DefaultMetadataFolderLocation = "wwwroot";
             DefaultMetadataFileName = "Metadata";
             CreateMetadataFile = false;
             ValidateMetadata = true;
 
             //cookie
-            Saml2CoreCookieName = Saml2Defaults.AuthenticationScheme;
+            Saml2CookieName = Saml2Defaults.AuthenticationScheme;
 
-            Saml2CoreCookie = new CookieBuilder()
+            Saml2Cookie = new CookieBuilder()
             {
-                Name = Saml2CoreCookieName,
+                Name = Saml2CookieName,
                 IsEssential = CookieConsentNeeded,
                 HttpOnly = true,
                 SameSite = SameSiteMode.None,
@@ -300,7 +300,7 @@ namespace Saml2Core
         /// <value>
         /// The metadata.
         /// </value>
-        public Saml2Metadata Metadata { get; set; }
+        public Saml2MetadataXml Metadata { get; set; }
         /// <summary>
         /// Gets or sets the identity provider metadata. This can be an address or 
         /// an xml file location.
@@ -388,7 +388,7 @@ namespace Saml2Core
         /// <value>
         /// The name of the saml2 core cookie.
         /// </value>
-        public string Saml2CoreCookieName { get; set; }
+        public string Saml2CookieName { get; set; }
         /// <summary>
         /// Gets or sets the remote sign out path. The default value is "/saml2-signout"
         /// This is used by the Idp to POST back to after it logs the user out of the Idp session.
@@ -594,7 +594,7 @@ namespace Saml2Core
         /// <value>
         /// The saml2 core cookie.
         /// </value>
-        internal CookieBuilder Saml2CoreCookie { get; set; }
+        internal CookieBuilder Saml2Cookie { get; set; }
         /// <summary>
         /// Gets or sets the saml2 security token handler.
         /// </summary>

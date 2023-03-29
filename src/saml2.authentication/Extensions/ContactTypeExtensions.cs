@@ -20,9 +20,9 @@
 // SOFTWARE.
 //
 
-using Saml.MetadataBuilder.Constants;
+using Saml2Metadata.Constants;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     internal static class ContactTypeExtensions
     {

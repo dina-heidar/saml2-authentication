@@ -26,7 +26,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Web;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     internal static class StringExtensions
     {

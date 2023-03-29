@@ -22,7 +22,7 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     internal static partial class Log
     {

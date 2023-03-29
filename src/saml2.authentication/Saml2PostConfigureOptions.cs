@@ -27,15 +27,15 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using MetadataBuilder.Schema.Metadata;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols;
-using Saml.MetadataBuilder;
+using Saml2Metadata;
+using Saml2Metadata.Schema;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     internal class Saml2PostConfigureOptions : IPostConfigureOptions<Saml2Options>
     {

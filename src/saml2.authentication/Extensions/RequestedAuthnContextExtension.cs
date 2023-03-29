@@ -20,15 +20,14 @@
 // SOFTWARE.
 //
 
-using Saml.MetadataBuilder.Constants;
+using Saml2Metadata.Constants;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
-
     public static class RequestedAuthnContextTypes
     {
         /// <summary>
-        /// Sets authentication as forms the authentication.
+        /// Sets authentication as forms the authentication.Provide a password over an unprotected HTTP session
         /// </summary>
         /// <param name="comparisonType">Type of the comparison.</param>
         /// <returns></returns>
@@ -38,6 +37,20 @@ namespace Saml2Core
             {
                 ComparisonType = comparisonType,
                 AuthnContextRefTypes = new[] { AuthnContextRefTypes.UserNameAndPassword }
+            };
+        }
+
+        /// <summary>
+        /// Protects the forms authentication. Provide a password over a protected HTTPS session.
+        /// </summary>
+        /// <param name="comparisonType">Type of the comparison.</param>
+        /// <returns></returns>
+        public static RequestedAuthenticationContext ProtectedFormsAuthentication(string comparisonType = "exact")
+        {
+            return new RequestedAuthenticationContext
+            {
+                ComparisonType = comparisonType,
+                AuthnContextRefTypes = new[] { AuthnContextRefTypes.PasswordProtectedTransport }
             };
         }
 

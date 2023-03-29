@@ -20,7 +20,7 @@
 // SOFTWARE.
 //
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     /// <summary>
     /// Lists the different authentication methods used to

@@ -22,7 +22,7 @@
 
 using Microsoft.AspNetCore.Authentication;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     internal static class HandleRequestResults
     {

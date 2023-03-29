@@ -22,7 +22,7 @@
 
 using System;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     public class Organization
     {

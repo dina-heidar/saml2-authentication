@@ -5,27 +5,27 @@
     <TargetFrameworks>net6.0;net7.0;netstandard2.0;netstandard2.1</TargetFrameworks>
     <LangVersion>Latest</LangVersion>
     <PackageId>Saml2.Authentication</PackageId>
-    <RootNamespace>Saml2.Authentication</RootNamespace>
+    <RootNamespace>Saml2Authentication</RootNamespace>
     <Nullable>disable</Nullable>
-    <IsTrimmable>true</IsTrimmable>
+    <IsTrimmable>false</IsTrimmable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PackageTags>authentication;security;saml2;.net core 2.1, .net core 2.2, saml2 core, saml2.core, saml, saml SSO, SSO, adfs</PackageTags>
+    <PackageTags>authentication;dotnet;security;saml2;.NETCore;SSO;SLO;.NET;identity;aspnetcore</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <Version>6.0.1-alpha</Version>   
+    <Version>6.0.3-alpha</Version>
     <Authors>Dina Heidar</Authors>
     <Company></Company>
     <Product>Saml2.Authentication</Product>
     <!--<PackageReadmeFile>readme.txt</PackageReadmeFile>-->
-    <AssemblyVersion>6.0.1.0</AssemblyVersion>
-    <FileVersion>6.0.1.0</FileVersion>
+    <AssemblyVersion>6.0.3.0</AssemblyVersion>
+    <FileVersion>6.0.3.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/dina-heidar/saml2-authentication</PackageProjectUrl>
     <RepositoryUrl>https://github.com/dina-heidar/saml2-authentication</RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
-    <PackageReleaseNotes>new features; artifact and post bindings;</PackageReleaseNotes>
-    <RepositoryType>Git</RepositoryType>
-    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
+    <PackageReleaseNotes>initial</PackageReleaseNotes>
+    <RepositoryType>Git</RepositoryType>  
+    <!--<TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>-->
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,6 +36,7 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1" />
     <PackageReference Include="Microsoft.IdentityModel.Protocols" Version="6.27.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens.Saml" Version="6.27.0" />
+    <PackageReference Include="Saml2.Metadata" Version="1.0.0-alpha" />  
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="7.0.2" />
   </ItemGroup>
 
@@ -43,18 +44,18 @@
     <None Include="readme.txt" Pack="true" PackagePath="\"/>
   </ItemGroup>-->
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\saml-metadata\src\MetadataBuilder\MetadataBuilder.csproj">
+  <!--<ItemGroup>
+    <ProjectReference Include="..\..\..\saml2-metadata\src\saml2.metadata\saml2-metadata.csproj">
       <PrivateAssets>all</PrivateAssets>
       <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <IncludeAssets>MetadataBuilder.dll</IncludeAssets>
+      <IncludeAssets>saml2.metadata.dll</IncludeAssets>
     </ProjectReference>
-  </ItemGroup>
-
-  <Target DependsOnTargets="ResolveReferences" Name="CopyProjectReferencesToPackage">
+  </ItemGroup>-->
+  
+  <!--<Target DependsOnTargets="ResolveReferences" Name="CopyProjectReferencesToPackage">
     <ItemGroup>
-      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))"/>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths-&gt;WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
     </ItemGroup>
-  </Target>
+  </Target>-->
 
 </Project>

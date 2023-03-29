@@ -23,7 +23,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     public class MessageReceivedContext : RemoteAuthenticationContext<Saml2Options>
     {

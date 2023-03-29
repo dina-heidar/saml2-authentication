@@ -25,7 +25,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     internal sealed class Saml2ConfigureOptions : IConfigureNamedOptions<Saml2Options>
     {
@@ -63,7 +63,7 @@ namespace Saml2Core
 
             SetCookie(options.CorrelationCookie);
             options.MaxAge = StringExtensions.ParseValueOrDefault(null, _invariantNullableTimeSpanParse, options.MaxAge);
-            SetCookie(options.Saml2CoreCookie);
+            SetCookie(options.Saml2Cookie);
 
             //saml2 options
             options.AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex;
@@ -96,7 +96,7 @@ namespace Saml2Core
             options.RequireMessageSigned = options.RequireMessageSigned;
             options.ResponseLogoutBinding = options.ResponseLogoutBinding;
             options.ResponseProtocolBinding = options.ResponseProtocolBinding;
-            options.Saml2CoreCookieName = options.Saml2CoreCookieName;
+            options.Saml2CookieName = options.Saml2CookieName;
             options.SignOutPath = options.SignOutPath.Value;
             options.SigningCertificate = options.SigningCertificate;
             options.SigningCertificateHashAlgorithmName = options.SigningCertificateHashAlgorithmName;

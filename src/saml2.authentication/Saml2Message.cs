@@ -22,7 +22,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -32,13 +31,13 @@ using System.Text;
 using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
-using MetadataBuilder.Schema.Metadata;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Protocols;
-using Saml.MetadataBuilder;
-using static Saml2Core.Saml2Constants;
+using Saml2Metadata;
+using Saml2Metadata.Schema;
+using static Saml2Authentication.Saml2Constants;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     internal class Saml2Message : AuthenticationProtocolMessage
     {
@@ -138,7 +137,7 @@ namespace Saml2Core
         /// <param name="authnRequestId">The authn request identifier.</param>
         /// <param name="relayState">State of the relay.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">
+        /// <exception cref="Saml2Authentication.Saml2Exception">
         /// The identity provider does not support 'HTTP-Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.
         /// or
         /// Missing signing certificate. Either add a signing certitifcatre or change the `AuthenticationRequestSigned` to `false`.
@@ -246,7 +245,7 @@ namespace Saml2Core
         /// <param name="relayState">State of the relay.</param>
         /// <param name="forcedSignout">if set to <c>true</c> [forced signout].</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">
+        /// <exception cref="Saml2Authentication.Saml2Exception">
         /// The identity provider does not support 'HTTP-Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.
         /// or
         /// Missing signing certificate. Either add a signing certitifcatre or change the `AuthenticationRequestSigned` to `false`.
@@ -347,7 +346,7 @@ namespace Saml2Core
         /// <param name="authnRequestId2">The authn request id2.</param>
         /// <param name="artifact">The artifact.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">
+        /// <exception cref="Saml2Authentication.Saml2Exception">
         /// The identity provider does not support 'Artifact' binding protocol. ArtifactResolutionServices endpoint was not found.
         /// or
         /// Signature Certificate cannot be null when using HTTP-Artifact binding
@@ -424,7 +423,8 @@ namespace Saml2Core
         /// <param name="responseType">Type of the response.</param>
         /// <param name="encryptingCertificate2">The encrypting certificate2.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">Unable to find encrypting certificate RSA private key</exception>
+        /// <exception cref="Saml2Authentication.Saml2Exception">Unable to find encrypting certificate RSA private key</exception>
+
         public virtual string GetToken(ResponseType responseType, X509Certificate2 encryptingCertificate2 = null)
         {
             if (encryptingCertificate2 != null)
@@ -446,7 +446,7 @@ namespace Saml2Core
         /// <param name="responseType">Type of the response.</param>
         /// <param name="key">The key.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">
+        /// <exception cref="Saml2Authentication.Saml2Exception">
         /// Missing assertion
         /// or
         /// Unable to find encrypting certificate
@@ -506,7 +506,7 @@ namespace Saml2Core
         /// <param name="token">The token.</param>
         /// <param name="options">The options.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">Assertion signature is not valid</exception>
+        /// <exception cref="Saml2Authentication.Saml2Exception">Assertion signature is not valid</exception>
         public AssertionType GetAssertion(string token, Saml2Options options)
         {
             if (options.WantAssertionsSigned)
@@ -533,7 +533,7 @@ namespace Saml2Core
         /// <param name="responseType">Type of the response.</param>
         /// <param name="options">The options.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">Response signature is not valid.</exception>
+        /// <exception cref="Saml2Authentication.Saml2Exception">Response signature is not valid.</exception>
         public ResponseType GetSamlResponseToken(string base64EncodedSamlResponse,
             string responseType, Saml2Options options)
         {
@@ -570,7 +570,7 @@ namespace Saml2Core
         /// <param name="envelope">The envelope.</param>
         /// <param name="options">The options.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">Response signature is not valid.</exception>
+        /// <exception cref="Saml2Authentication.Saml2Exception">Response signature is not valid.</exception>
         public ResponseType GetArtifactResponseToken(string envelope, Saml2Options options)
         {
             var reponseEnvelope = DeSerializeToClass<Envelope>(envelope);
@@ -604,7 +604,7 @@ namespace Saml2Core
         /// </summary>
         /// <param name="inResponseTo">The in response to.</param>
         /// <param name="inResponseToCookieValue">The in response to cookie value.</param>
-        /// <exception cref="Saml2Core.Saml2Exception">
+        /// <exception cref="Saml2Authentication.Saml2Exception">
         /// Empty protocol message id is not allowed.
         /// or
         /// Replay attack.
@@ -628,7 +628,7 @@ namespace Saml2Core
         /// Checks the status.
         /// </summary>
         /// <param name="responseToken">The response token.</param>
-        /// <exception cref="Saml2Core.Saml2Exception"></exception>
+        /// <exception cref="Saml2Authentication.Saml2Exception"></exception>
         public void CheckStatus(ResponseType responseToken)
         {
             var status = responseToken.Status.StatusCode;
@@ -686,7 +686,7 @@ namespace Saml2Core
             var _issuerAddress = this.IssuerAddress;
 
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.Append("<?xml version =\"1.0\" encoding =\"utf-8\"?>\r\n <!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\r\n\r\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\">\r\n<head>\r\n <title>SAML2Core</title>\r\n </head>\r\n <body onload=\"document.forms[0].submit()\">\r\n <noscript><prop><strong>Note:</strong> Since your browser does not support JavaScript, you must press the Continue button once to proceed.</prop></noscript>\r\n");
+            stringBuilder.Append("<?xml version =\"1.0\" encoding =\"utf-8\"?>\r\n <!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\r\n\r\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\">\r\n<head>\r\n <title>Saml2.Authentication</title>\r\n </head>\r\n <body onload=\"document.forms[0].submit()\">\r\n <noscript><prop><strong>Note:</strong> Since your browser does not support JavaScript, you must press the Continue button once to proceed.</prop></noscript>\r\n");
             stringBuilder.AppendFormat("<html><head><body><form method='post' name='hiddenform' action='{0}'><div>", _issuerAddress);
 
             foreach (KeyValuePair<string, string> parameter in this.Parameters)
@@ -778,7 +778,7 @@ namespace Saml2Core
         /// <param name="verifySignatureOnly">if set to <c>true</c> [verify signature only].</param>
         /// <param name="configuration">The configuration.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">Too many signatures!</exception>
+        /// <exception cref="Saml2Authentication.Saml2Exception">Too many signatures!</exception>
         private static bool ValidateXmlSignature(XmlDocument xmlDoc,
             bool verifySignatureOnly, EntityDescriptor configuration)
         {
@@ -810,7 +810,7 @@ namespace Saml2Core
         /// <param name="encryptedElement">The encrypted element.</param>
         /// <param name="privateKey">The private key.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">Unable to locate assertion decryption key.</exception>
+        /// <exception cref="Saml2Authentication.Saml2Exception">Unable to locate assertion decryption key.</exception>
         private SymmetricAlgorithm ExtractSessionKey(EncryptedElementType encryptedElement,
             AsymmetricAlgorithm privateKey)
         {
@@ -833,7 +833,7 @@ namespace Saml2Core
         /// <param name="encryptedKey">The encrypted key.</param>
         /// <param name="privateKey">The private key.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">Unable to decode CipherData of type \"CipherReference\".</exception>
+        /// <exception cref="Saml2Authentication.Saml2Exception">Unable to decode CipherData of type \"CipherReference\".</exception>
         private SymmetricAlgorithm ToSymmetricKey(EncryptedKey encryptedKey,
             AsymmetricAlgorithm privateKey)
         {
@@ -885,7 +885,7 @@ namespace Saml2Core
         /// <param name="data">The data.</param>
         /// <param name="hashAlgorithmName">Name of the hash algorithm.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">Signing key must be an instance of either RSA, DSA or ECDSA.</exception>
+        /// <exception cref="Saml2Authentication.Saml2Exception">Signing key must be an instance of either RSA, DSA or ECDSA.</exception>
         private byte[] SignData(AsymmetricAlgorithm key, byte[] data, HashAlgorithmName hashAlgorithmName)
         {
             if (key is RSA)
@@ -916,7 +916,7 @@ namespace Saml2Core
         /// <param name="query">The query.</param>
         /// <param name="hashAlgorithmName">Name of the hash algorithm.</param>
         /// <returns></returns>
-        /// <exception cref="Saml2Core.Saml2Exception">Signing key must be an instance of either RSA, DSA or ECDSA.</exception>
+        /// <exception cref="Saml2Authentication.Saml2Exception">Signing key must be an instance of either RSA, DSA or ECDSA.</exception>
         private string GetQuerySignature(AsymmetricAlgorithm key, string query, HashAlgorithmName hashAlgorithmName)
         {
             // Check if the key is of a supported type. [SAMLBind] sect. 3.4.4.1 specifies this.
@@ -978,7 +978,7 @@ namespace Saml2Core
         /// <typeparam name="T"></typeparam>
         /// <param name="item">The item.</param>
         /// <returns></returns>
-        //[RequiresUnreferencedCode("Calls System.Xml.Serialization.XmlSerializer.XmlSerializer(Type)")]        
+        //[RequiresUnreferencedCode("Calls System.Xml.Serialization.XmlSerializer.XmlSerializer(Type)")] 
         private static XmlDocument Serialize<T>(T item) where T : class
         {
             var xmlTemplate = string.Empty;

@@ -28,16 +28,16 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using MetadataBuilder.Schema.Metadata;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Saml.MetadataBuilder;
-using static Saml2Core.Saml2Constants;
+using Saml2Metadata;
+using Saml2Metadata.Schema;
+using static Saml2Authentication.Saml2Constants;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     internal class Saml2Handler : RemoteAuthenticationHandler<Saml2Options>,
         IAuthenticationSignOutHandler
@@ -169,10 +169,10 @@ namespace Saml2Core
                 //since this is a solicited login (sent from challenge)
                 // we must compare the incoming 'InResponseTo' what we have in the cookie
                 var requestCookies = Request.Cookies;
-                var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CoreCookie.Name))];
+                var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2Cookie.Name))];
 
                 //cleanup and remove existing saml cookies
-                Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
+                Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CookieName);
 
                 //validate it is not a replay attack by comparing inResponseTo values
                 saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
@@ -394,14 +394,14 @@ namespace Saml2Core
             //state so it can be checked against the InResponseTo.
 
             //cleanup and remove existing saml cookies
-            Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
+            Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CookieName);
 
             //create cookie 
-            Options.Saml2CoreCookie.Name = $"{Options.Saml2CoreCookieName}.{(uint)relayState.GetHashCode()}";
+            Options.Saml2Cookie.Name = $"{Options.Saml2CookieName}.{(uint)relayState.GetHashCode()}";
 
             // append it to response
-            Response.Cookies.Append(Options.Saml2CoreCookie.Name, authnRequestId.Base64Encode(),
-                Options.Saml2CoreCookie.Build(Context));
+            Response.Cookies.Append(Options.Saml2Cookie.Name, authnRequestId.Base64Encode(),
+                Options.Saml2Cookie.Build(Context));
 
             Logger.CreateSignInRequest();
             var samlRequest = saml2Message.CreateSignInRequest(Options, authnRequestId, relayState);
@@ -524,14 +524,14 @@ namespace Saml2Core
                 //since this is a solicited login (sent from challenge)
                 // we must compare the incoming 'InResponseTo' what we have in the cookie
                 var requestCookies = Request.Cookies;
-                var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CoreCookie.Name))];
+                var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2Cookie.Name))];
 
                 //validate it is not a replay attack by comparing inResponseTo values
                 saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
 
                 //cleanup and remove existing saml cookies
                 //no need for it since we checked the inResponseId values
-                Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
+                Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CookieName);
 
                 //check what the Idp response is -if it was successful or not
                 saml2Message.CheckStatus(responseToken);
@@ -604,14 +604,14 @@ namespace Saml2Core
             //state so it can be checked against the InResponseTo.
 
             //cleanup and remove existing saml cookies
-            Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CoreCookieName);
+            Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CookieName);
 
             //create cookie 
-            Options.Saml2CoreCookie.Name = $"{Options.Saml2CoreCookieName}.{(uint)relayState.GetHashCode()}";
+            Options.Saml2Cookie.Name = $"{Options.Saml2CookieName}.{(uint)relayState.GetHashCode()}";
 
             // append it to response
-            Response.Cookies.Append(Options.Saml2CoreCookie.Name, logoutRequestId.Base64Encode(),
-                Options.Saml2CoreCookie.Build(Context));
+            Response.Cookies.Append(Options.Saml2Cookie.Name, logoutRequestId.Base64Encode(),
+                Options.Saml2Cookie.Build(Context));
 
             //if logout is redirect
             if (Options.LogoutMethod == Saml2LogoutBehaviour.RedirectGet)

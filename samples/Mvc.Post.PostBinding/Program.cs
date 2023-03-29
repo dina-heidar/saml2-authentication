@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Saml2Core;
+using Saml2Authentication;
 using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -59,7 +59,7 @@ public class Program
             //to generate a metadata file
             //metadata creation items
             options.CreateMetadataFile = true;
-            options.Metadata = new Saml2Metadata
+            options.Metadata = new Saml2MetadataXml
             {
                 CacheDuration = "360000",
                 ValidUntil = DateTime.UtcNow.AddDays(365),

@@ -22,11 +22,11 @@
 
 using System;
 using System.Security.Cryptography.X509Certificates;
-using Saml.MetadataBuilder;
+using Saml2Metadata;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
-    public class Saml2Metadata
+    public class Saml2MetadataXml
     {
         /// <summary>
         /// <para><b>Optional</b><br/>

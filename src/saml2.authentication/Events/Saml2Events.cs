@@ -24,7 +24,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     public class Saml2Events : RemoteAuthenticationEvents
     {

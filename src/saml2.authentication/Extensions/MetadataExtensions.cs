@@ -22,9 +22,9 @@
 
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
-using Saml.MetadataBuilder;
+using Saml2Metadata;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     internal static class MetadataExtensions
     {
@@ -36,9 +36,9 @@ namespace Saml2Core
                 ValidUntil = options.Metadata.ValidUntil,
                 CacheDuration = options.Metadata.CacheDuration,
                 Signature = options.Metadata.Signature,
-                ContactPersons = new Saml.MetadataBuilder.ContactPerson[]
+                ContactPersons = new Saml2Metadata.ContactPerson[]
                        {
-                            new Saml.MetadataBuilder.ContactPerson
+                            new Saml2Metadata.ContactPerson
                             {
                                 Company =  options.Metadata.ContactPersons.Company,
                                 ContactType =  ContactTypeExtensions.ToContactEnumType(options.Metadata.ContactPersons.ContactType),
@@ -48,7 +48,7 @@ namespace Saml2Core
                                 Surname= options.Metadata.ContactPersons.Surname
                             }
                        },
-                Organization = new Saml.MetadataBuilder.Organization
+                Organization = new Saml2Metadata.Organization
                 {
                     OrganizationDisplayName = new LocalizedName[] { new LocalizedName { Language = options.Metadata.Organization.Language,
                                 Value = options.Metadata.Organization.OrganizationDisplayName } },
@@ -61,7 +61,7 @@ namespace Saml2Core
                 {
                     Any = new object[]
                            {
-                               new Saml.MetadataBuilder.UiInfo
+                               new Saml2Metadata.UiInfo
                                {
                                    InformationURL = new LocalizedUri { Language = options.Metadata.UiInfo.Language,
                                        Uri = options.Metadata.UiInfo.InformationURL },
@@ -86,9 +86,9 @@ namespace Saml2Core
                                }
                            }
                 },
-                AttributeConsumingService = new Saml.MetadataBuilder.AttributeConsumingService[]
+                AttributeConsumingService = new Saml2Metadata.AttributeConsumingService[]
                        {
-                            new Saml.MetadataBuilder.AttributeConsumingService
+                            new Saml2Metadata.AttributeConsumingService
                             {
                                 Index = 0,
                                 IsDefault= true,
@@ -151,12 +151,12 @@ namespace Saml2Core
                 return SingleLogoutServiceTypes.Redirect.Url(url, 0, true);
             }
         }
-        private static Saml.MetadataBuilder.RequestedAttribute[] GetRequestedAttributes(RequestedAttribute[] reqs)
+        private static Saml2Metadata.RequestedAttribute[] GetRequestedAttributes(RequestedAttribute[] reqs)
         {
-            var requestedAttributes = new List<Saml.MetadataBuilder.RequestedAttribute>();
+            var requestedAttributes = new List<Saml2Metadata.RequestedAttribute>();
             foreach (var req in reqs)
             {
-                requestedAttributes.Add(new Saml.MetadataBuilder.RequestedAttribute
+                requestedAttributes.Add(new Saml2Metadata.RequestedAttribute
                 {
                     Name = req.Name,
                     NameFormat = req.NameFormat,

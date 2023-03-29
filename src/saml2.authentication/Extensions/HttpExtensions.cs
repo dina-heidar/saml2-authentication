@@ -24,7 +24,7 @@ using System;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 
-namespace Saml2Core
+namespace Saml2Authentication
 {
     /// <summary>
     /// 
