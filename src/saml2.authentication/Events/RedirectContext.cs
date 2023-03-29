@@ -26,7 +26,17 @@ using Saml2Metadata;
 
 namespace Saml2Authentication
 {
+
+#pragma warning disable CS1584 // XML comment has syntactically incorrect cref attribute
+
+#pragma warning disable CS1658 // Warning is overriding an error
+    /// <summary>
+    /// 
+    /// </summary> 
+    /// <seealso cref="Microsoft.AspNetCore.Authentication.PropertiesContext&lt;Saml2Authentication.Saml2Options&gt;" />
     public class RedirectContext : PropertiesContext<Saml2Options>
+#pragma warning restore CS1658 // Warning is overriding an error
+#pragma warning restore CS1584 // XML comment has syntactically incorrect cref attribute
     {
         /// <summary>
         /// Creates a new context object.

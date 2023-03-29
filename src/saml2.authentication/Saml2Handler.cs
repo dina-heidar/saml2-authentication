@@ -549,6 +549,7 @@ namespace Saml2Authentication
             }
             catch (Exception exception)
             {
+                var message = exception.Message;
                 return false;
             }
         }
@@ -640,7 +641,7 @@ namespace Saml2Authentication
         protected virtual async Task<bool> HandleRemoteSignOutAsync()
         {
             //TODO SLO
-            return true;
+            return await Task.FromResult(true);
         }
 
 

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <RootNamespace>Mvc.Post.ArtifactBinding</RootNamespace>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <UserSecretsId>e0155e73-7d3f-4d27-ab5f-45c53517407d</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
@@ -11,12 +11,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Cryptography.X509Certificates.Extension" Version="1.0.1" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\saml2.authentication\saml2.authentication.csproj" />
+    <PackageReference Include="Saml2.Authentication" Version="6.0.6" />   
+    <PackageReference Include="X509StoreFinder" Version="1.0.1-alpha" />
   </ItemGroup>
 
 </Project>

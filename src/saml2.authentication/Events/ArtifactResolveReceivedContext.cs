@@ -80,14 +80,27 @@ namespace Saml2Authentication
         internal Saml2Message ArtifactResolutionResponse { get; set; }
 
 
+        /// <summary>
+        /// Gets a value indicating whether [handled artifact resolve redemption].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [handled artifact resolve redemption]; otherwise, <c>false</c>.
+        /// </value>
         public bool HandledArtifactResolveRedemption => ArtifactResolutionResponse != null;
 
 
+        /// <summary>
+        /// Handles the saml artifact resolution response.
+        /// </summary>
         public void HandleSamlArtifactResolutionResponse()
         {
             ArtifactResolutionResponse = new Saml2Message();
         }
 
+        /// <summary>
+        /// Handles the saml artifact resolution response.
+        /// </summary>
+        /// <param name="artifactResponse">The artifact response.</param>
         public void HandleSamlArtifactResolutionResponse(string artifactResponse)
         {
             ArtifactResolutionResponse = new Saml2Message() { ArtifactResponse = artifactResponse };

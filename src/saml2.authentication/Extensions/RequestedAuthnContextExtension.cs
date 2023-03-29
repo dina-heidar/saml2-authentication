@@ -24,6 +24,9 @@ using Saml2Metadata.Constants;
 
 namespace Saml2Authentication
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public static class RequestedAuthnContextTypes
     {
         /// <summary>

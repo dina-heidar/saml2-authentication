@@ -36,9 +36,12 @@ using static Saml2Authentication.Saml2Constants;
 
 namespace Saml2Authentication
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <seealso cref="Microsoft.AspNetCore.Authentication.RemoteAuthenticationOptions" />
     public class Saml2Options : RemoteAuthenticationOptions
     {
-        private CookieBuilder _nonceCookieBuilder;
         volatile private Saml2SecurityTokenHandler _defaultHandler;
         private TokenValidationParameters _tokenValidationParameters = new TokenValidationParameters();
 
@@ -528,6 +531,18 @@ namespace Saml2Authentication
         /// </value>
         internal string SignOutQueryString { get; set; }
 
+        /// <summary>
+        /// Check that the options are valid.  Should throw an exception if things are not ok.
+        /// </summary>
+        /// <exception cref="Saml2Authentication.Saml2Exception">
+        /// The Options.MaxAge value must not be a negative TimeSpan.
+        /// or
+        /// Options.EntityId must be provided
+        /// or
+        /// Options.CallbackPath must be provided.
+        /// </exception>
+        /// <exception cref="System.InvalidOperationException">Provide {nameof(MetadataAddress)}, "
+        ///                 + $"{nameof(Configuration)}, or {nameof(ConfigurationManager)} to {nameof(Saml2Options)}</exception>
         public override void Validate()
         {
             base.Validate();

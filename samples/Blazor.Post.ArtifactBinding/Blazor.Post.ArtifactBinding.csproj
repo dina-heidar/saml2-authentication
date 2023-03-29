@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <RootNamespace>Blazor.Post.ArtifactBinding</RootNamespace>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>4984e432-570c-4d95-99dd-12e4fe6e664c</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>

@@ -38,7 +38,7 @@ namespace Saml2Authentication
         /// <param name="name">The name.</param>
         /// <param name="options">The options.</param>
         /// <returns></returns>
-        public void Configure(string? name, Saml2Options options)
+        public void Configure(string name, Saml2Options options)
         {
             if (string.IsNullOrEmpty(name))
             {

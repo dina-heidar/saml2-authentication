@@ -50,7 +50,7 @@ public class AccountController : Controller
     {
         var result = await HttpContext.AuthenticateAsync();
         var properties = result.Properties;
-        var provider = properties.Items[".AuthScheme"];
+        var provider = properties?.Items[".AuthScheme"];
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignOutAsync(provider, properties);
     }

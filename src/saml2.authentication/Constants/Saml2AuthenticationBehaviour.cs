@@ -38,12 +38,6 @@ namespace Saml2Authentication
         /// Emits an HTML form to redirect the user agent to
         /// the Idp using a POST request.
         /// </summary>
-        FormPost = 1,
-
-        /// <summary>
-        /// Creates an artifact and send it the Idp artifact endpoint
-        /// using GET request.
-        /// </summary>
-        //Artifact = 2
+        FormPost = 1
     }
 }

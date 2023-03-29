@@ -906,11 +906,13 @@ namespace Saml2Authentication
             throw new Saml2Exception("Signing key must be an instance of either RSA, DSA or ECDSA.");
         }
 
+
+#pragma warning disable CS1570 // XML comment has badly formed XML
         /// <summary>
         /// Gets the query signature.
         /// To construct the signature, a string consisting of the concatenation of the RelayState(if present),
         /// SigAlg, and SAMLRequest(or SAMLResponse) query string parameters(each one URLencoded) is constructed
-        /// in one of the following ways(ordered as 'SAMLRequest=value&RelayState=value&SigAlg=value')
+        /// in one of the following ways(ordered as <cods>SAMLRequest=value&RelayState=value&SigAlg=value</cods>)
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="query">The query.</param>
@@ -918,6 +920,7 @@ namespace Saml2Authentication
         /// <returns></returns>
         /// <exception cref="Saml2Authentication.Saml2Exception">Signing key must be an instance of either RSA, DSA or ECDSA.</exception>
         private string GetQuerySignature(AsymmetricAlgorithm key, string query, HashAlgorithmName hashAlgorithmName)
+#pragma warning restore CS1570 // XML comment has badly formed XML
         {
             // Check if the key is of a supported type. [SAMLBind] sect. 3.4.4.1 specifies this.
             if (!(key is RSA || key is DSA || key is ECDsa || key == null))

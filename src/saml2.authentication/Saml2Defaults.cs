@@ -22,6 +22,9 @@
 
 namespace Saml2Authentication
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class Saml2Defaults
     {
         /// <summary>

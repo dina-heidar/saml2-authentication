@@ -26,6 +26,9 @@ using Saml2Metadata;
 
 namespace Saml2Authentication
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class Saml2MetadataXml
     {
         /// <summary>
@@ -73,7 +76,7 @@ namespace Saml2Authentication
         /// The organization.
         /// </value>
         public Organization Organization { get; set; }
-        // <summary>
+        /// <summary>
         /// <para><b>Optional</b><br/> 
         /// used to provide various kind of information about 
         /// a contact person such as individuals’ name,

@@ -24,6 +24,9 @@ using System;
 
 namespace Saml2Authentication
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class UiInfo
     {
         /// <summary>

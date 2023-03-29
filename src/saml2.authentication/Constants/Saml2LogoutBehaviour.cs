@@ -38,16 +38,5 @@ namespace Saml2Authentication
         /// theSaml2 provider using a POST request.
         /// </summary>
         FormPost = 1
-
-        /// <summary>
-        /// Creates an artifact and send it the Idp artifact endpoint
-        /// using GET request.
-        /// </summary>
-        //Artifact = 2,
-
-        /// <summary>
-        /// Creates an SOAP request and send it the Idp.
-        /// </summary>
-        //SOAP = 3
     }
 }
