@@ -21,8 +21,8 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: |
-              '7.0.x'
-              '6.0.x'     
+              6.0.x  
+              7.0.x       
 
       - name: Clean
         run: dotnet clean -c $BUILD_CONFIG && dotnet nuget locals all --clear
