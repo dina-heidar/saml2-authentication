@@ -21,8 +21,7 @@
     <Company></Company>
     <Product>Saml2.Authentication</Product>
     <PackageReadmeFile>README.md</PackageReadmeFile>   
-    <!--<PackageLicenseFile>LICENSE</PackageLicenseFile>-->
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>  
     <PackageProjectUrl>https://github.com/dina-heidar/saml2-authentication</PackageProjectUrl>
     <RepositoryUrl>https://github.com/dina-heidar/saml2-authentication</RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
@@ -43,7 +42,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!--<None Include="..\..\LICENSE" Pack="true" Visible="false" PackagePath="" />-->
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
     <None Include="..\..\assets\logo\icon_128x128.png" Pack="true" PackagePath="images" />
     <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
