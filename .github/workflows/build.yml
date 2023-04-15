@@ -8,19 +8,25 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    env:
+      BUILD_CONFIG: Release  
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+          fetch-depth: 0
     
-    - name: Setup .NET 6
+    - name: Setup dotnet
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.101 
+        dotnet-version: |
+            6.0.x  
+            7.0.x              
     
     - name: Install Dependencies
       run: dotnet restore
 
-    - name: Build Solution
-      run: dotnet build --configuration Release --no-restore
+    - name: Build
+      run: dotnet build -c $BUILD_CONFIG --no-restore

@@ -143,13 +143,13 @@ namespace Saml2Authentication
                 }
                 else if (!string.IsNullOrEmpty(options.MetadataAddress))
                 {
-                    var pattern = @"(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$";
+                    var pattern = @"^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$";
                     var result = Regex.IsMatch(options.MetadataAddress,
                         pattern, RegexOptions.IgnoreCase);
 
                     if (result)
                     {
-                        var httpsPattern = @"^(https:\/\/www\.|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$";
+                        var httpsPattern = @"^(https:\/\/www\.|https:\/\/)[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$";
                         var isHttpsRegexMatch = Regex.IsMatch(options.MetadataAddress, httpsPattern, RegexOptions.IgnoreCase);
 
                         if (options.RequireHttpsMetadata && !isHttpsRegexMatch)
