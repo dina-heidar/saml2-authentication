@@ -15,6 +15,7 @@
     <Version>6.0.7</Version>
     <AssemblyVersion>6.0.7.0</AssemblyVersion>
     <FileVersion>6.0.7.0</FileVersion>
+    <InformationalVersion>This is a release package</InformationalVersion>
     <Authors>Dina Heidar</Authors>
     <Company></Company>
     <Product>Saml2.Authentication</Product>
