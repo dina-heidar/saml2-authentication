@@ -29,15 +29,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mvc.Redirect.ArtifactBindin
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mvc.Redirect.PostBinding", "samples\Mvc.Redirect.PostBinding\Mvc.Redirect.PostBinding.csproj", "{DBE548FB-790E-4A86-B465-1A504C0BBB5B}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{DD6EC0E8-06B8-4A4E-BD2A-B75B1D196902}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{4E9F2C11-8DEE-40CF-BCBB-1467C210245B}"
-	ProjectSection(SolutionItems) = preProject
-		.github\workflows\build.yml = .github\workflows\build.yml
-		.github\workflows\ci.yml = .github\workflows\ci.yml
-		.github\workflows\release.yml = .github\workflows\release.yml
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -84,8 +75,6 @@ Global
 		{CAEBEFCA-F082-4390-A995-713E0A9BBB73} = {538031E3-2808-459B-9B84-BE9B211BB53F}
 		{122B87E1-22AE-4E55-8E4C-48FE4DCFC6ED} = {538031E3-2808-459B-9B84-BE9B211BB53F}
 		{DBE548FB-790E-4A86-B465-1A504C0BBB5B} = {538031E3-2808-459B-9B84-BE9B211BB53F}
-		{DD6EC0E8-06B8-4A4E-BD2A-B75B1D196902} = {AABC16B6-3346-472A-A227-E7099BA0A2DE}
-		{4E9F2C11-8DEE-40CF-BCBB-1467C210245B} = {DD6EC0E8-06B8-4A4E-BD2A-B75B1D196902}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4913BF26-EB95-4163-B1A2-BE7450EFC50E}
