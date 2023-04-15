@@ -12,23 +12,23 @@
     <PackageTags>authentication;dotnet;security;saml2;.NETCore;SSO;SLO;.NET;identity;aspnetcore</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <Version>6.0.6</Version>
+    <Version>6.0.7</Version>
+    <AssemblyVersion>6.0.7.0</AssemblyVersion>
+    <FileVersion>6.0.7.0</FileVersion>
     <Authors>Dina Heidar</Authors>
     <Company></Company>
     <Product>Saml2.Authentication</Product>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <AssemblyVersion>6.0.6.0</AssemblyVersion>
-    <FileVersion>6.0.6.0</FileVersion>
+    <PackageReadmeFile>README.md</PackageReadmeFile>   
+    <!--<PackageLicenseFile>LICENSE</PackageLicenseFile>-->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/dina-heidar/saml2-authentication</PackageProjectUrl>
     <RepositoryUrl>https://github.com/dina-heidar/saml2-authentication</RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
-    <PackageReleaseNotes>initial release</PackageReleaseNotes>
+    <PackageReleaseNotes>metadata regex if not a url</PackageReleaseNotes>
     <RepositoryType>Git</RepositoryType>
     <Title>Saml2.Authentication</Title>
     <Copyright>Copyright Dina Heidar</Copyright> 
-    <!--<TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>-->
-   
+    
     <!-- Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
 
@@ -38,12 +38,12 @@
 
     <!-- Embed source files that are not tracked by the source control manager in the PDB -->
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-
-    <Deterministic>true</Deterministic>
-    <!-- Recommended: Embed symbols containing Source Link in the main file (exe/dll) -->
-    <!--<DebugType>embedded</DebugType>-->
-
   </PropertyGroup>
+
+  <ItemGroup>
+    <!--<None Include="..\..\LICENSE" Pack="true" Visible="false" PackagePath="" />-->
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.2.0" />
@@ -57,12 +57,24 @@
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="7.0.2" />
   </ItemGroup>
 
+  <!--source link-->
+  <ItemGroup>
+    <SourceRoot Include="$(MSBuildThisFileDirectory)/" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
   <!--test locally-->
   <!--<PropertyGroup>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>-->
 
-
+  <!--test on server-->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
 
   <!--There is a well known issue with the EmbedUntrackedSources 
   attribute that could be fix with the below workaround needed for many 
@@ -74,37 +86,5 @@
     <!-- https://github.com/dotnet/sourcelink/issues/572 -->
     <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)" />
   </ItemGroup>
-  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-  </PropertyGroup>
-
-
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
-
-  <!--source link-->
-  <ItemGroup>
-    <SourceRoot Include="$(MSBuildThisFileDirectory)/" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-
-  <!--<ItemGroup>
-    <ProjectReference Include="..\..\..\saml2-metadata\src\saml2.metadata\saml2-metadata.csproj">
-      <PrivateAssets>all</PrivateAssets>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <IncludeAssets>saml2.metadata.dll</IncludeAssets>
-    </ProjectReference>
-  </ItemGroup>-->
-
-  <!--<Target DependsOnTargets="ResolveReferences" Name="CopyProjectReferencesToPackage">
-    <ItemGroup>
-      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths-&gt;WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
-    </ItemGroup>
-  </Target>-->
-
+ 
 </Project>
