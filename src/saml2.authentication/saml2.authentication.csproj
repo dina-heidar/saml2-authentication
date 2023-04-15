@@ -12,18 +12,19 @@
     <PackageTags>authentication;dotnet;security;saml2;.NETCore;SSO;SLO;.NET;identity;aspnetcore</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <Version>6.0.6</Version>
+    <Version>6.0.8</Version>
     <Authors>Dina Heidar</Authors>
     <Company></Company>
     <Product>Saml2.Authentication</Product>
+    <PackageIcon>images\icon_128x128.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <AssemblyVersion>6.0.6.0</AssemblyVersion>
-    <FileVersion>6.0.6.0</FileVersion>
+    <AssemblyVersion>6.0.8.0</AssemblyVersion>
+    <FileVersion>6.0.8.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/dina-heidar/saml2-authentication</PackageProjectUrl>
     <RepositoryUrl>https://github.com/dina-heidar/saml2-authentication</RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
-    <PackageReleaseNotes>initial release</PackageReleaseNotes>
+    <PackageReleaseNotes>logo</PackageReleaseNotes>
     <RepositoryType>Git</RepositoryType>
     <Title>Saml2.Authentication</Title>
     <Copyright>Copyright Dina Heidar</Copyright> 
@@ -80,6 +81,7 @@
 
 
   <ItemGroup>
+    <None Include="..\..\assets\logo\icon_128x128.png" Pack="true" PackagePath="images" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
