@@ -30,3 +30,4 @@
 /samples/RazorPages.Redirect.PostBinding/bin
 /src/saml2.authentication/obj
 /src/saml2.authentication/bin
+/src/saml2.authentication/.AssemblyAttributes

@@ -93,7 +93,7 @@ public class Program
                     LogoUriValue = new Uri("https://epsm.la.gov/logo.png"),
                     KeywordValues = new[] { "set", "ready", "go" }
                 },
-                AttributeConsumingService =  new AttributeConsumingService
+                AttributeConsumingService = new AttributeConsumingService
                 {
                     ServiceDescriptions = "testing service",
                     ServiceNames = "primary",
@@ -103,7 +103,7 @@ public class Program
                         {
                             Name ="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
                             NameFormat = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                            FriendlyName = "E-Mail Address",                          
+                            FriendlyName = "E-Mail Address",
                             IsRequiredField= true
                         },
                         new RequestedAttribute
@@ -124,7 +124,7 @@ public class Program
                 },
                 Signature = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
                      "0n3wh33L", X509KeyStorageFlags.Exportable)
-        };
+            };
 
             if (environment.IsDevelopment())
             {
