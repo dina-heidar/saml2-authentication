@@ -22,7 +22,7 @@
     <Product>Saml2.Authentication</Product>
     <PackageReadmeFile>README.md</PackageReadmeFile>   
     <PackageLicenseFile>LICENSE</PackageLicenseFile>  
-    <PackageProjectUrl>https://github.com/dina-heidar/saml2-authentication</PackageProjectUrl>
+    <PackageProjectUrl>https://saml2-documentation.readthedocs.io/en/latest/getting-started</PackageProjectUrl>
     <RepositoryUrl>https://github.com/dina-heidar/saml2-authentication</RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
     <PackageReleaseNotes>metadata regex if not a url</PackageReleaseNotes>
@@ -55,7 +55,7 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1" />
     <PackageReference Include="Microsoft.IdentityModel.Protocols" Version="6.27.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens.Saml" Version="6.27.0" />
-    <PackageReference Include="Saml2.Metadata" Version="1.0.4"/>
+    <PackageReference Include="Saml2.Metadata" Version="1.0.4" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="7.0.2" />
   </ItemGroup>
 
