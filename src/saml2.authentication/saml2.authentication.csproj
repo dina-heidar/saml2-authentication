@@ -12,9 +12,9 @@
     <PackageTags>authentication;dotnet;security;saml2;.NETCore;SSO;SLO;.NET;identity;aspnetcore</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <Version>6.1.1</Version>
-    <AssemblyVersion>6.1.1.0</AssemblyVersion>
-    <FileVersion>6.1.1.0</FileVersion>
+    <Version>6.1.2</Version>
+    <AssemblyVersion>6.1.2.0</AssemblyVersion>
+    <FileVersion>6.1.2.0</FileVersion>
     <PackageIcon>images\icon_128x128.png</PackageIcon>
     <InformationalVersion>This is a release package</InformationalVersion>
     <Authors>Dina Heidar</Authors>
@@ -22,10 +22,10 @@
     <Product>Saml2.Authentication</Product>
     <PackageReadmeFile>README.md</PackageReadmeFile>   
     <PackageLicenseFile>LICENSE</PackageLicenseFile>  
-    <PackageProjectUrl>https://saml2-documentation.readthedocs.io/en/latest/getting-started</PackageProjectUrl>
+    <PackageProjectUrl>https://saml2-authentication.readthedocs.io/en/latest/getting-started</PackageProjectUrl>
     <RepositoryUrl>https://github.com/dina-heidar/saml2-authentication</RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
-    <PackageReleaseNotes>Documentation site</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed generate metadata file bug</PackageReleaseNotes>
     <RepositoryType>Git</RepositoryType>
     <Title>Saml2.Authentication</Title>
     <Copyright>Copyright Dina Heidar</Copyright> 

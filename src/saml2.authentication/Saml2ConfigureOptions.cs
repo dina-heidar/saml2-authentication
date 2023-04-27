@@ -109,7 +109,7 @@ namespace Saml2Authentication
             options.ValidAudiences = options.ValidAudiences;
             options.ValidateIssuer = options.ValidateIssuer;
             options.ValidIssuers = options.ValidIssuers;
-            options.ValidateMetadata = options.ValidateMetadata;
+            //options.ValidateMetadata = options.ValidateMetadata;
             options.VerifySignatureOnly = options.VerifySignatureOnly;
             options.WantAssertionsSigned = options.WantAssertionsSigned;
             options.SignOutQueryString = options.SignOutQueryString;

@@ -75,10 +75,10 @@ public class Program
                 },
                 Organization = new Organization
                 {
-                    //OrganizationDisplayName = "Louisiana State Government",
+                    OrganizationDisplayName = "Louisiana State Government",
                     OrganizationName = "Department of Corrections IdentityApi",
-                    //OrganizationURL = new Uri("https://identityAPI.doc.la.gov"),
-                    //Language = "en-US"
+                    OrganizationURL = new Uri("https://identityAPI.doc.la.gov"),
+                    Language = "en-US"
                 },
                 // add an sp logo to the idp sign in page 
                 UiInfo = new UiInfo

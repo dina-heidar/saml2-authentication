@@ -198,10 +198,10 @@ namespace Saml2Authentication
                     var xmlDoc = _writer.Output(bsm);
 
                     //validate the saml sp metadata file
-                    if (options.ValidateMetadata)
-                    {
-                        _writer.Validate(xmlDoc);
-                    }
+                    //if (options.ValidateMetadata)
+                    //{
+                    //    _writer.Validate(xmlDoc);
+                    //}
 
                     //save
                     xmlDoc.Save(Path.Combine(options.DefaultMetadataFolderLocation,
