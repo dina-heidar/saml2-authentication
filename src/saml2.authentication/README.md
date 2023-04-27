@@ -4,4 +4,4 @@ This is a dotnet tool when to added, it can authenticate and logout using SAML2.
 
 The tools will add authentication middleware to the request pipeline.
 
-Click here for [documentation](https://saml2-documentation.readthedocs.io/en/latest/getting-started/)
+Click here for [documentation](https://saml2-authentication.readthedocs.io/en/latest/getting-started/)
