@@ -12,9 +12,9 @@
     <PackageTags>authentication;dotnet;security;saml2;.NETCore;SSO;SLO;.NET;identity;aspnetcore</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <Version>6.0.8</Version>
-    <AssemblyVersion>6.0.8.0</AssemblyVersion>
-    <FileVersion>6.0.8.0</FileVersion>
+    <Version>6.1.1</Version>
+    <AssemblyVersion>6.1.1.0</AssemblyVersion>
+    <FileVersion>6.1.1.0</FileVersion>
     <PackageIcon>images\icon_128x128.png</PackageIcon>
     <InformationalVersion>This is a release package</InformationalVersion>
     <Authors>Dina Heidar</Authors>
@@ -22,10 +22,10 @@
     <Product>Saml2.Authentication</Product>
     <PackageReadmeFile>README.md</PackageReadmeFile>   
     <PackageLicenseFile>LICENSE</PackageLicenseFile>  
-    <PackageProjectUrl>https://github.com/dina-heidar/saml2-authentication</PackageProjectUrl>
+    <PackageProjectUrl>https://saml2-documentation.readthedocs.io/en/latest/getting-started</PackageProjectUrl>
     <RepositoryUrl>https://github.com/dina-heidar/saml2-authentication</RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
-    <PackageReleaseNotes>metadata regex if not a url</PackageReleaseNotes>
+    <PackageReleaseNotes>Documentation site</PackageReleaseNotes>
     <RepositoryType>Git</RepositoryType>
     <Title>Saml2.Authentication</Title>
     <Copyright>Copyright Dina Heidar</Copyright> 
@@ -55,7 +55,7 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1" />
     <PackageReference Include="Microsoft.IdentityModel.Protocols" Version="6.27.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens.Saml" Version="6.27.0" />
-    <PackageReference Include="Saml2.Metadata" Version="1.0.4"/>
+    <PackageReference Include="Saml2.Metadata" Version="1.0.4" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="7.0.2" />
   </ItemGroup>
 
