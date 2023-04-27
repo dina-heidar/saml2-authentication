@@ -90,7 +90,7 @@ namespace Saml2Authentication
             DefaultMetadataFolderLocation = "wwwroot";
             DefaultMetadataFileName = "Metadata";
             CreateMetadataFile = false;
-            ValidateMetadata = true;
+            //ValidateMetadata = true;
 
             //cookie
             Saml2CookieName = Saml2Defaults.AuthenticationScheme;
@@ -490,15 +490,6 @@ namespace Saml2Authentication
         /// The valid issuers.
         /// </value>
         public IEnumerable<string> ValidIssuers { get; set; } = new List<string>();
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to validate 
-        /// the metadata xml against the xsd schema upon creation 
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if validate; otherwise, <c>false</c>.
-        /// </value>
-        public bool ValidateMetadata { get; set; }
         /// <summary>
         /// Gets or sets the bool responsible for signature validation
         /// true to verify the signature only; 
