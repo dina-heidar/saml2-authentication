@@ -168,5 +168,17 @@ namespace Saml2Authentication
             /// </summary>
             public const string Admin = "urn:oasis:names:tc:SAML:2.0:logout:admin";
         }
+
+        public static class Message
+        {
+            /// <summary>
+            /// The saml assertion section
+            /// </summary>
+            public const string SamlAssertion = "Assertion";
+            /// <summary>
+            /// The entire saml response
+            /// </summary>
+            public const string SamlResponse = "SamlResponse";
+        }
     }
 }

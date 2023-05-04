@@ -518,7 +518,7 @@ namespace Saml2Authentication
                 };
                 doc.LoadXml(token);
 
-                if (!ValidateXmlSignature(doc, options.VerifySignatureOnly, options.Configuration))
+                if (!ValidateXmlSignature(Message.SamlAssertion, doc, options.VerifySignatureOnly, options.Configuration))
                 {
                     throw new Saml2Exception("Assertion signature is not valid");
                 }
@@ -554,7 +554,7 @@ namespace Saml2Authentication
 
             if (options.RequireMessageSigned)
             {
-                if (!ValidateXmlSignature(doc, options.VerifySignatureOnly, options.Configuration))
+                if (!ValidateXmlSignature(Message.SamlResponse, doc, options.VerifySignatureOnly, options.Configuration))
                 {
                     throw new Saml2Exception("Response signature is not valid.");
                 }
@@ -590,7 +590,7 @@ namespace Saml2Authentication
 
             if (options.RequireMessageSigned)
             {
-                if (!ValidateXmlSignature(doc, options.VerifySignatureOnly, options.Configuration))
+                if (!ValidateXmlSignature(Message.SamlResponse, doc, options.VerifySignatureOnly, options.Configuration))
                 {
                     throw new Saml2Exception("Response signature is not valid.");
                 }
@@ -774,21 +774,26 @@ namespace Saml2Authentication
         /// <summary>
         /// Validates the XML signature.
         /// </summary>
+        /// <param name="messageType">Type of the message.</param>
         /// <param name="xmlDoc">The XML document.</param>
         /// <param name="verifySignatureOnly">if set to <c>true</c> [verify signature only].</param>
         /// <param name="configuration">The configuration.</param>
         /// <returns></returns>
         /// <exception cref="Saml2Authentication.Saml2Exception">Too many signatures!</exception>
-        private static bool ValidateXmlSignature(XmlDocument xmlDoc,
+        private static bool ValidateXmlSignature(string messageType, XmlDocument xmlDoc,
             bool verifySignatureOnly, EntityDescriptor configuration)
         {
             var signedXml = new SignedXml(xmlDoc);
             var signatureElement = xmlDoc.GetElementsByTagName(Saml2Constants.Parameters.Signature,
                 Saml2Constants.Namespaces.DsNamespace);
 
-            // Checking if the response or the assertion has been signed once and only once.
-            if (signatureElement.Count != 1)
-                throw new Saml2Exception("Too many signatures!");
+            // Checking if the response or the assertion has
+            // been signed once and only once.
+            if (signatureElement.Count > 1)
+                throw new Saml2Exception($"The {messageType} has too many signatures.");
+
+            if (signatureElement.Count == 0)
+                throw new Saml2Exception($"The {messageType} is not signed.");
 
             signedXml.LoadXml((XmlElement)signatureElement[0]);
 

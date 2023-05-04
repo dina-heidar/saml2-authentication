@@ -22,6 +22,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -183,7 +184,11 @@ namespace Saml2Authentication
                 //check if the metadata.xml already exists
                 string[] xmlList = Directory.GetFiles(options.DefaultMetadataFolderLocation, "*.xml");
 
-                if (xmlList.Length > 0)
+                // if there is an existing metadata file with the
+                // same configured name then don't create it
+                if (xmlList.Length > 0 &&
+                     xmlList.Contains(Path.Combine(options.DefaultMetadataFolderLocation,
+                     options.DefaultMetadataFileName + ".xml")))
                 {
                     // the file exists and will
                     // need to be manually deleted first
