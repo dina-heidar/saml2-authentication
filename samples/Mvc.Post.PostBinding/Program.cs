@@ -98,32 +98,32 @@ public class Program
                     ServiceDescriptions = "testing service",
                     ServiceNames = "primary",
                     RequestedAttributes = new RequestedAttribute[]
+                {
+                    new RequestedAttribute
                     {
-                        new RequestedAttribute
-                        {
-                            Name ="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
-                            NameFormat = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                            FriendlyName = "E-Mail Address",
-                            IsRequiredField= true
-                        },
-                        new RequestedAttribute
-                        {
-                            Name ="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
-                            NameFormat = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                            FriendlyName = "Surname",
-                            IsRequiredField= true
-                        },
-                        new RequestedAttribute
-                        {
-                            Name ="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
-                            NameFormat = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                            FriendlyName = "Given Name",
-                            IsRequiredField= true
-                        }
+                        Name ="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+                        NameFormat = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                        FriendlyName = "E-Mail Address",
+                        IsRequiredField= true
+                    },
+                    new RequestedAttribute
+                    {
+                        Name ="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+                        NameFormat = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                        FriendlyName = "Surname",
+                        IsRequiredField= true
+                    },
+                    new RequestedAttribute
+                    {
+                        Name ="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+                        NameFormat = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                        FriendlyName = "Given Name",
+                        IsRequiredField= true
                     }
+                }
                 },
                 Signature = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
-                     "0n3wh33L", X509KeyStorageFlags.Exportable)
+                 "0n3wh33L", X509KeyStorageFlags.Exportable)
             };
 
             if (environment.IsDevelopment())

@@ -63,7 +63,7 @@ namespace Saml2Authentication
             ForceAuthn = false;
             NameIdPolicy = new NameIdPolicy
             {
-                Format = NameIDFormats.Persistent,
+                Format = NameIDFormats.Unspecified,
                 SpNameQualifier = null,
                 AllowCreate = true
             };
@@ -101,7 +101,7 @@ namespace Saml2Authentication
                 IsEssential = CookieConsentNeeded,
                 HttpOnly = true,
                 SameSite = SameSiteMode.None,
-                SecurePolicy = CookieSecurePolicy.SameAsRequest
+                SecurePolicy = CookieSecurePolicy.Always
             };
 
             AllowUnsolicitedLogins = false;
@@ -323,7 +323,8 @@ namespace Saml2Authentication
         /// Gets or sets the name identifier format. This is needed to perform logout and SLO.
         /// </summary>
         /// <value>
-        /// The name identifier format.
+        /// The name identifier format. The default NameIDFormat is 
+        /// urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified
         /// </value>
         public NameIdPolicy NameIdPolicy { get; set; }
         /// <summary>
