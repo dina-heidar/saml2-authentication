@@ -143,6 +143,11 @@ namespace Saml2Authentication
             {
                 return AssertionConsumerServiceExtensions.Post.Url(url, 0, true);
             }
+            //if artifact
+            else if (responseProtocolBinding == Saml2ResponseProtocolBinding.Artifact)
+            {
+                return AssertionConsumerServiceExtensions.Artifact.Url(url, 0, true);
+            }
             //if redirect
             else
             {

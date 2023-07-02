@@ -29,7 +29,7 @@ jobs:
               7.0.x   
 
       - name: Clean
-        run: dotnet clean -c $BUILD_CONFIG && dotnet nuget locals all --clear
+        run: dotnet clean ./src/saml2.authentication/saml2.authentication.csproj -c $BUILD_CONFIG && dotnet nuget locals all --clear
 
       - name: Install Dependencies
         run: dotnet restore      
@@ -40,15 +40,15 @@ jobs:
       - name: Pack 
         run: dotnet pack ./src/saml2.authentication/saml2.authentication.csproj -c $BUILD_CONFIG --no-build --include-source --include-symbols -o ./artifacts
       
-      - name: Setup nuget
-        uses: NuGet/setup-nuget@v1
-        with:
-          nuget-version: latest
+      #- name: Setup nuget
+      #  uses: NuGet/setup-nuget@v1
+      #  with:
+      #    nuget-version: latest
 
-      - name: Push to GPR
-        env:
-           GITHUB_NUGET_URL: https://nuget.pkg.github.com/dina-heidar/index.json
-           GITHUB_NUGET_API_KEY: ${{ secrets.GITHUB_TOKEN }}
-        run: dotnet nuget push ./artifacts/saml2.authentication.*.nupkg -k $GITHUB_NUGET_API_KEY -s $GITHUB_NUGET_URL --skip-duplicate
+      #- name: Push to GPR
+      #  env:
+      #     GITHUB_NUGET_URL: https://nuget.pkg.github.com/dina-heidar/index.json
+      #     GITHUB_NUGET_API_KEY: ${{ secrets.GITHUB_TOKEN }}
+      #  run: dotnet nuget push ./artifacts/saml2.authentication.*.nupkg -k $GITHUB_NUGET_API_KEY -s $GITHUB_NUGET_URL --skip-duplicate
           
     
