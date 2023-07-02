@@ -107,7 +107,7 @@ namespace Saml2Authentication
         //[LoggerMessage(17, LogLevel.Error, "Exception occurred while processing message.", EventName = "ExceptionProcessingMessage")]
         //public static partial void ExceptionProcessingMessage(this ILogger logger, Exception ex);
 
-        [LoggerMessage(20, LogLevel.Debug, "Retrieving claims assertion.")]
+        [LoggerMessage(20, LogLevel.Debug, "Retrieving claims Saml assertion.")]
         public static partial void RetrievingClaims(this ILogger logger);
 
         //[LoggerMessage(23, LogLevel.Warning, "Failed to un-protect the nonce cookie.", EventName = "UnableToProtectNonceCookie")]

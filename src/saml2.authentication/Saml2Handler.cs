@@ -161,6 +161,8 @@ namespace Saml2Authentication
 
                 else
                 {
+                    _logger.LogDebug($"Read Saml response and vaidate signature if needed.");
+
                     //read saml response and vaidate signature if needed
                     responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse,
                         Saml2Constants.ResponseTypes.AuthnResponse, Options);
@@ -180,12 +182,15 @@ namespace Saml2Authentication
                 //check what the Idp response is -if it was successful or not
                 saml2Message.CheckStatus(responseToken);
 
-                //get the token and decrypt it is it was encrypted
+                //get the token and decrypt it if it was encrypted
                 var token = saml2Message.GetToken(responseToken, Options.EncryptingCertificate);
 
+                _logger.LogDebug("Extracting Saml assertion.");
                 //get the decrypted assertion section 
                 //and check its signature (if that option was set to 'true')
                 var assertion = saml2Message.GetAssertion(token, Options);
+
+                _logger.LogDebug("Extracting AuthnStatement from Saml Response.");
 
                 //we need extract the session index 
                 //and save in a cookie for SLO
@@ -194,22 +199,36 @@ namespace Saml2Authentication
                 if (assertion.Items.Any(x => x.GetType() == typeof(AuthnStatementType)))
                 {
                     session = (AuthnStatementType)assertion.Items.FirstOrDefault(x => x.GetType() == typeof(AuthnStatementType));
-
+                    if (session == null)
+                    {
+                        _logger.LogDebug("Saml Response does not contain an AuthnStatement.");
+                    }
                 }
 
                 //is it to be re-used for logout
                 if (assertion.Subject.Items.Any(x => x.GetType() == typeof(NameIDType)))
                 {
                     var nameIdType = (NameIDType)assertion.Subject.Items.FirstOrDefault(x => x.GetType() == typeof(NameIDType));
-                    //write from incoming 
-                    Options.NameId = new NameId
+
+                    if (nameIdType == null)
                     {
-                        SpNameQualifier = nameIdType.SPNameQualifier,
-                        Format = nameIdType.Format,
-                        NameQualifier = nameIdType.NameQualifier,
-                        SpProvidedId = nameIdType.SPProvidedID,
-                        Value = nameIdType.Value
-                    };
+                        _logger.LogDebug("Saml Response does not contain NameID.");
+                    }
+
+                    if (nameIdType != null)
+                    {
+                        _logger.LogDebug("Saml Response contains NameID.");
+
+                        //write from incoming 
+                        Options.NameId = new NameId
+                        {
+                            SpNameQualifier = nameIdType.SPNameQualifier,
+                            Format = nameIdType.Format,
+                            NameQualifier = nameIdType.NameQualifier,
+                            SpProvidedId = nameIdType.SPProvidedID,
+                            Value = nameIdType.Value
+                        };
+                    }
                 }
 
                 if (_configuration == null)
@@ -231,6 +250,8 @@ namespace Saml2Authentication
                 ClaimsPrincipal principal = null;
                 SecurityToken parsedToken = null;
 
+                _logger.LogDebug("Setting Saml token validators.");
+
                 var issuers = new[] { responseToken.Issuer.Value };
                 tvp.ValidateIssuerSigningKey = Options.WantAssertionsSigned;
                 tvp.ValidateTokenReplay = !Options.IsPassive;
@@ -249,6 +270,7 @@ namespace Saml2Authentication
 
                 if (validator.CanReadToken(token))
                 {
+                    _logger.LogDebug("Validating Saml token.");
                     principal = validator.ValidateToken(token, tvp, out parsedToken);
                     _logger.TokenValidatedHandledResponse();
                 }
@@ -278,22 +300,33 @@ namespace Saml2Authentication
 
                 _logger.RetrievingClaims();
 
-                if (!string.IsNullOrEmpty(session.SessionIndex))
+                if (!string.IsNullOrWhiteSpace(session?.SessionIndex))
                 {
                     //update the cookie with session index value
                     //will be used for logout
                     //get the session index from assertion so you can use it to logout later
                     identity.AddClaim(new Claim(Saml2ClaimTypes.SessionIndex, session.SessionIndex));
+                    _logger.LogDebug($"Added session index to user claims for signout later.");
+                }
+                else
+                {
+                    _logger.LogDebug($"Session index does not exist, cannot add to user claims for signout.");
                 }
 
                 if (principal.Claims.Any(c => c.Type == ClaimTypes.NameIdentifier))
                 {
                     identity.AddClaim(new Claim(ClaimTypes.Name, principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier).Value));
+                    _logger.LogDebug($"Added name identifier to user claims.");
+                }
+                else
+                {
+                    _logger.LogDebug($"Name identifier does not exist in user claims.");
                 }
                 string redirectUrl = !string.IsNullOrEmpty(properties.RedirectUri) ? properties.RedirectUri : Options.CallbackPath.ToString();
                 Context.Response.Redirect(redirectUrl, true);
                 Context.User = new ClaimsPrincipal(identity);
                 //await Context.SignInAsync(Options.SignInScheme, Context.User, properties);
+                _logger.LogDebug($"Creating authentication ticket.");
                 return HandleRequestResult.Success(new AuthenticationTicket(Context.User, properties, Scheme.Name));
             }
             catch (Exception exception)
@@ -323,13 +356,13 @@ namespace Saml2Authentication
         {
             if (Options.RemoteSignOutPath.HasValue && Options.RemoteSignOutPath == Request.Path)
             {
-                Logger.RemoteSignOut();
+                _logger.RemoteSignOut();
                 // we've received a remote sign-out request
                 return HandleRemoteSignOutAsync();
             }
             else if (Options.SignOutPath.HasValue && Options.SignOutPath == Request.Path)
             {
-                Logger.SignOutCallbackRecieved();
+                _logger.SignOutCallbackRecieved();
                 return HandleSignOutCallbackAsync();
             }
             return base.HandleRequestAsync();
@@ -346,7 +379,7 @@ namespace Saml2Authentication
         /// </returns>
         protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
         {
-            Logger.EnteringSaml2AuthenticationHandlerHandleUnauthorizedAsync(GetType().FullName!);
+            _logger.EnteringSaml2AuthenticationHandlerHandleUnauthorizedAsync(GetType().FullName!);
 
             // order for local RedirectUri
             // 1. challenge.Properties.RedirectUri
@@ -359,9 +392,9 @@ namespace Saml2Authentication
 
             if (_configuration == null && Options.ConfigurationManager != null)
             {
-                Logger.UpdatingConfiguration();
+                _logger.UpdatingConfiguration();
                 _configuration = await Options.ConfigurationManager.GetConfigurationAsync(Context.RequestAborted);
-                Logger.ConfigurationManagerGetConfigurationAsyncCalled();
+                _logger.ConfigurationManagerGetConfigurationAsyncCalled();
                 Options.Configuration = _configuration;
             }
 
@@ -403,19 +436,19 @@ namespace Saml2Authentication
             Response.Cookies.Append(Options.Saml2Cookie.Name, authnRequestId.Base64Encode(),
                 Options.Saml2Cookie.Build(Context));
 
-            Logger.CreateSignInRequest();
+            _logger.CreateSignInRequest();
             var samlRequest = saml2Message.CreateSignInRequest(Options, authnRequestId, relayState);
-            Logger.SignInRequestCreated();
+            _logger.SignInRequestCreated();
 
             if (Options.AuthenticationMethod == Saml2AuthenticationBehaviour.RedirectGet)
             {
-                Logger.RedirectAuthenticationLocalRedirect(properties.RedirectUri);
+                _logger.RedirectAuthenticationLocalRedirect(properties.RedirectUri);
                 //call idp
                 Response.Redirect(samlRequest);
             }
             else if (Options.AuthenticationMethod == Saml2AuthenticationBehaviour.FormPost)
             {
-                Logger.PostAuthenticationLocalRedirect(properties.RedirectUri);
+                _logger.PostAuthenticationLocalRedirect(properties.RedirectUri);
                 var content = samlRequest;
                 var buffer = Encoding.UTF8.GetBytes(content);
 
@@ -441,6 +474,7 @@ namespace Saml2Authentication
             //redirect
             if (HttpMethods.IsGet(Request.Method))
             {
+                _logger.LogDebug($"Read Saml logout HTTPGet response.");
                 var query = Request.Query;
                 // ToArray handles the StringValues.IsNullOrEmpty case.
                 // We assume non-empty Value does not contain null elements.
@@ -457,6 +491,7 @@ namespace Saml2Authentication
               && Request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)
               && Request.Body.CanRead)
             {
+                _logger.LogDebug($"Read Saml logout HTTPPost response.");
                 var form = await Request.ReadFormAsync(Context.RequestAborted);
                 // ToArray handles the StringValues.IsNullOrEmpty case.
                 // We assume non-empty Value does not contain null elements.
@@ -516,7 +551,8 @@ namespace Saml2Authentication
 
                 else
                 {
-                    //read saml response and vaidate signature if needed
+                    _logger.LogDebug($"Read Saml logout response and vaidate signature if needed.");
+                    //read saml logout response and vaidate signature if needed
                     responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse,
                         Saml2Constants.ResponseTypes.LogoutResponse, Options);
                 }
@@ -538,6 +574,7 @@ namespace Saml2Authentication
 
                 if (Context.User.Identity.IsAuthenticated)
                 {
+                    _logger.LogDebug($"Sign user out.");
                     await Context.SignOutAsync(Options.SignOutScheme, properties);
                 }
 
@@ -587,7 +624,12 @@ namespace Saml2Authentication
             var logoutRequestId = Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
 
             //get session index value
-            var sessionIndex = Context.User.FindFirst(Saml2ClaimTypes.SessionIndex).Value;
+            var sessionIndex = Context.User.Claims.FirstOrDefault(c => c.Type == Saml2ClaimTypes.SessionIndex)?.Value;
+
+            if (string.IsNullOrWhiteSpace(sessionIndex))
+            {
+                throw new Saml2Exception("Session index value not found. This is required for SAML signout.");
+            }
 
             //get nameId value
             if (string.IsNullOrEmpty(Options.NameId?.Value))
@@ -617,6 +659,7 @@ namespace Saml2Authentication
             //if logout is redirect
             if (Options.LogoutMethod == Saml2LogoutBehaviour.RedirectGet)
             {
+                _logger.LogDebug($"Creating redirect signout request.");
                 var samlRequest = saml2Message.CreateLogoutRequest(Options, logoutRequestId, sessionIndex, relayState);
                 //call idp
                 Response.Redirect(samlRequest);
@@ -625,6 +668,7 @@ namespace Saml2Authentication
             //if logout is post 
             else if (Options.LogoutMethod == Saml2LogoutBehaviour.FormPost)
             {
+                _logger.LogDebug($"Creating post signout request.");
                 var samlRequest = saml2Message.CreateLogoutRequest(Options, logoutRequestId, sessionIndex, relayState);
                 var content = samlRequest;
                 var buffer = Encoding.UTF8.GetBytes(content);
@@ -647,7 +691,7 @@ namespace Saml2Authentication
 
         protected virtual async Task<ResponseType> RedeemFromArtifactResolveServiceAsync(Saml2Message saml2Message)
         {
-            Logger.RedeemingArtifactForAssertion();
+            _logger.RedeemingArtifactForAssertion();
 
             var artifactValue = Saml2Message.GetArtifact(saml2Message.SamlArt);
             var arsIndex = (ushort)artifactValue.EndpointIndex;
@@ -674,11 +718,11 @@ namespace Saml2Authentication
             var contentMediaType = responseMessage.Content.Headers.ContentType?.MediaType;
             if (string.IsNullOrEmpty(contentMediaType))
             {
-                Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type header is missing.");
+                _logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type header is missing.");
             }
             else if (!string.Equals(contentMediaType, "application/json", StringComparison.OrdinalIgnoreCase))
             {
-                Logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type {responseMessage.Content.Headers.ContentType}.");
+                _logger.LogDebug($"Unexpected token response format. Status Code: {(int)responseMessage.StatusCode}. Content-Type {responseMessage.Content.Headers.ContentType}.");
             }
 
             try
@@ -695,7 +739,7 @@ namespace Saml2Authentication
             {
                 throw new Saml2Exception(responseMessage.ReasonPhrase);
             }
-            Logger.ArtifactResolutionResponeReceived();
+            _logger.ArtifactResolutionResponeReceived();
             return saml2Message.GetArtifactResponseToken(saml2Message.ArtifactResponse, Options);
         }
 
@@ -704,7 +748,7 @@ namespace Saml2Authentication
         private async Task<ArtifactResolveReceivedContext> RunSamlArtifactResolveReceivedEventAsync(Saml2Message saml2Message,
             AuthenticationProperties properties)
         {
-            Logger.ArtifactResolveReceived();
+            _logger.ArtifactResolveReceived();
 
             var saml2message = new Saml2Message()
             {
@@ -722,11 +766,11 @@ namespace Saml2Authentication
             {
                 if (context.Result.Handled)
                 {
-                    Logger.ArtifactResolveReceivedContextHandledResponse();
+                    _logger.ArtifactResolveReceivedContextHandledResponse();
                 }
                 else if (context.Result.Skipped)
                 {
-                    Logger.ArtifactResolveReceivedContextSkipped();
+                    _logger.ArtifactResolveReceivedContextSkipped();
                 }
             }
             return context;

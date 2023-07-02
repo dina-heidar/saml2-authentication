@@ -51,6 +51,8 @@ public class Program
             options.ValidateArtifact = true;
             options.CallbackPath = new PathString("/saml2-artifact");
 
+            options.CreateMetadataFile = true;
+
             if (environment.IsDevelopment())
             {
                 options.SigningCertificate = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
