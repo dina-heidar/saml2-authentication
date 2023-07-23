@@ -171,7 +171,7 @@ namespace Saml2Authentication
                 //since this is a solicited login (sent from challenge)
                 // we must compare the incoming 'InResponseTo' what we have in the cookie
                 var requestCookies = Request.Cookies;
-                var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2Cookie.Name))];
+                var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CookieName))];
 
                 //cleanup and remove existing saml cookies
                 Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CookieName);
@@ -430,13 +430,14 @@ namespace Saml2Authentication
             Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CookieName);
 
             //create cookie 
-            Options.Saml2Cookie.Name = $"{Options.Saml2CookieName}.{(uint)relayState.GetHashCode()}";
+            var cookieName = $"{Options.Saml2CookieName}.{(uint)relayState.GetHashCode()}";
 
             // append it to response
-            Response.Cookies.Append(Options.Saml2Cookie.Name, authnRequestId.Base64Encode(),
+            Response.Cookies.Append(cookieName, authnRequestId.Base64Encode(),
                 Options.Saml2Cookie.Build(Context));
 
             _logger.CreateSignInRequest();
+
             var samlRequest = saml2Message.CreateSignInRequest(Options, authnRequestId, relayState);
             _logger.SignInRequestCreated();
 
@@ -560,7 +561,7 @@ namespace Saml2Authentication
                 //since this is a solicited login (sent from challenge)
                 // we must compare the incoming 'InResponseTo' what we have in the cookie
                 var requestCookies = Request.Cookies;
-                var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2Cookie.Name))];
+                var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CookieName))];
 
                 //validate it is not a replay attack by comparing inResponseTo values
                 saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
@@ -650,10 +651,10 @@ namespace Saml2Authentication
             Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CookieName);
 
             //create cookie 
-            Options.Saml2Cookie.Name = $"{Options.Saml2CookieName}.{(uint)relayState.GetHashCode()}";
+            var cookieName = $"{Options.Saml2CookieName}.{(uint)relayState.GetHashCode()}";
 
             // append it to response
-            Response.Cookies.Append(Options.Saml2Cookie.Name, logoutRequestId.Base64Encode(),
+            Response.Cookies.Append(cookieName, logoutRequestId.Base64Encode(),
                 Options.Saml2Cookie.Build(Context));
 
             //if logout is redirect
