@@ -22,7 +22,7 @@
     <PackageProjectUrl>https://saml2-authentication.readthedocs.io/en/latest/getting-started</PackageProjectUrl>
     <RepositoryUrl>https://github.com/dina-heidar/saml2-authentication</RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
-    <PackageReleaseNotes>Updated libraries, fixed create metedata bug</PackageReleaseNotes>
+    <PackageReleaseNotes>Saml2.Authentication</PackageReleaseNotes>
     <RepositoryType>Git</RepositoryType>
     <Title>Saml2.Authentication</Title>
     <Copyright>Copyright Dina Heidar</Copyright>
