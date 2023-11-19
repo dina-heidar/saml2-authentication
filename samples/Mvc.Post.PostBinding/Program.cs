@@ -8,6 +8,7 @@ using Saml2Authentication;
 using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using X509StoreFinder;
 
 namespace Mvc.Post.PostBinding;
 
@@ -137,11 +138,7 @@ public class Program
             {
                 //if you want to search in cert store -can be used for production
                 options.SigningCertificate = options.EncryptingCertificate =
-                new Cryptography.X509Certificates.Extension.X509Certificate2(
-                    "[Serial number of certificate]",
-                    StoreName.My,
-                    StoreLocation.LocalMachine,
-                    X509FindType.FindBySerialNumber, true, true);
+                X509.LocalMachine.My.FindBySerialNumber.Find("[Serial number of certificate]", true, true);
             };
             options.Events.OnTicketReceived = context =>
             {

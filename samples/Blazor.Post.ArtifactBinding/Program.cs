@@ -2,6 +2,7 @@ using Blazor.Post.ArtifactBinding.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Saml2Authentication;
 using System.Security.Cryptography.X509Certificates;
+using X509StoreFinder;
 
 namespace Blazor.Post.ArtifactBinding;
 
@@ -55,7 +56,6 @@ public class Program
             //options.AssertionConsumerServiceIndex = 2;
             options.CallbackPath = new PathString("/saml2-artifact");
 
-
             if (environment.IsDevelopment())
             {
                 options.SigningCertificate = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
@@ -67,12 +67,8 @@ public class Program
             {
                 //if you want to search in cert store -can be used for production
                 options.SigningCertificate = options.EncryptingCertificate =
-                new Cryptography.X509Certificates.Extension.X509Certificate2(
-                    "[Serial number of certificate]",
-                    StoreName.My,
-                    StoreLocation.LocalMachine,
-                    X509FindType.FindBySerialNumber, true, true);
-            };
+                X509.LocalMachine.My.FindBySerialNumber.Find("[Serial number of certificate]", true, true);
+            }
             options.Events.OnTicketReceived = context =>
             {
                 return Task.FromResult(0);
