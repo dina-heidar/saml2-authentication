@@ -52,7 +52,8 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens.Saml" Version="7.0.3" />
     <PackageReference Include="Saml2.Metadata" Version="1.0.7" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.0" />    
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.0" />
+    <PackageReference Include="System.Text.Encodings.Web" Version="8.0.0" />
   </ItemGroup>
 
   <!--source link-->
