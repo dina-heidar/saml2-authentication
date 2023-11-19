@@ -33,6 +33,7 @@ public class Program
             options.MetadataAddress = "https://adfs2.la.gov/federationmetadata/2007-06/federationmetadata.xml";
             options.ForceAuthn = true;
             options.VerifySignatureOnly = false;
+            options.CreateMetadataFile = true;
 
             //must match with metadata file
             options.EntityId = "dev.govalerts.la.gov";

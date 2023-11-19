@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -11,11 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Saml2.Authentication" Version="8.0.1" />
     <PackageReference Include="X509StoreFinder" Version="1.0.7" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\saml2.authentication\saml2.authentication.csproj" />
   </ItemGroup>
 
 </Project>
