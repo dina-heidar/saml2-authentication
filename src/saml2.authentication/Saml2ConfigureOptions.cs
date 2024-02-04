@@ -68,6 +68,7 @@ namespace Saml2Authentication
             //saml2 options
             options.AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex;
             options.AssertionConsumerServiceUrl = options.AssertionConsumerServiceUrl;
+            options.AttributeConsumingServiceIndex = options.AttributeConsumingServiceIndex;
             options.AuthenticationMethod = options.AuthenticationMethod;
             options.AuthenticationRequestSigned = options.AuthenticationRequestSigned;
             options.AuthenticationScheme = options.AuthenticationScheme;

@@ -173,7 +173,7 @@ namespace Saml2Authentication
 
                     if (options.ResponseProtocolBinding == Saml2ResponseProtocolBinding.Artifact && options.SigningCertificate == null)
                     {
-                        throw new Saml2Exception("Signing certifactes are required when using 'HTTP-Artifact' binding protocol");
+                        throw new Saml2Exception("Signing certificates are required when using 'HTTP-Artifact' binding protocol");
                     }
                 }
             }

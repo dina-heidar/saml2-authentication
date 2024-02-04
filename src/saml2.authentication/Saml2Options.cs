@@ -131,6 +131,16 @@ namespace Saml2Authentication
         /// </value>
         public Uri AssertionConsumerServiceUrl { get; set; }
         /// <summary>
+        /// Gets or sets the index of the attribute consuming service index
+        /// in the AuthnRequest. If this value is populated, 
+        /// the IdP will look up the 'AttributeConsumingServiceIndex' in the SP 
+        /// metadata and send the requested claims that fall under it.
+        /// </summary>
+        /// <value>
+        /// The index of the attribute consuming service.
+        /// </value>
+        public ushort? AttributeConsumingServiceIndex { get; set; }
+        /// <summary>
         /// Gets or sets the authentication HTTP method.
         /// </summary>
         /// <value>
@@ -151,7 +161,6 @@ namespace Saml2Authentication
         /// The authentication scheme.
         /// </value>
         public string AuthenticationScheme { get; set; }
-
         /// <summary>
         /// Gets or sets a value indicating whether [create metadata file]. 
         /// The defalut is set to "false".
