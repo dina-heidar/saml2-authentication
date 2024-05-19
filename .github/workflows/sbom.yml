@@ -1,0 +1,50 @@
+name: SBOM upload
+
+on:
+  push:
+    branches: [ main, dev ]
+
+  workflow_dispatch:
+
+env:
+  PROJECT_PATH: ./src/saml2.authentication/saml2.authentication.csproj
+
+jobs:
+  SBOM-upload:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write
+      contents: write
+  
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+         dotnet-version: '8.0.x'
+
+      - name: Install Dependencies
+        run: dotnet restore ${PROJECT_PATH}
+
+      - name: Build Solution
+        run: dotnet build ${PROJECT_PATH} 
+
+      - name: Generate SBOM
+        uses: advanced-security/sbom-generator-action@v0.0.1
+        id: sbom
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v3.1.0
+        with:
+          name: sbom
+          path: ${{steps.sbom.outputs.fileName }}
+          
+      - name: Upload SBOM to Dependency Graph
+        uses: advanced-security/spdx-dependency-submission-action@v0.0.1
+        with:
+          filePath: ${{steps.sbom.outputs.fileName }}/
+
+

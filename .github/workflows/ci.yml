@@ -26,7 +26,8 @@ jobs:
         with:
           dotnet-version: |
               6.0.x  
-              7.0.x   
+              7.0.x  
+              8.0.x
 
       - name: Clean
         run: dotnet clean ./src/saml2.authentication/saml2.authentication.csproj -c $BUILD_CONFIG && dotnet nuget locals all --clear
