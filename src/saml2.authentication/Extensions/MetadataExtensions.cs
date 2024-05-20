@@ -20,6 +20,7 @@
 // SOFTWARE.
 //
 
+using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Saml2Metadata;
@@ -105,8 +106,8 @@ namespace Saml2Authentication
                 {
                     new Saml2Metadata.AttributeConsumingService
                     {
-                        Index = 0,
-                        IsDefault= true,
+                        Index = (options.AttributeConsumingServiceIndex != null ? options.AttributeConsumingServiceIndex.Value : (ushort)0),
+                        IsDefault= options.AttributeConsumingServiceIndex.HasValue,
                         IsDefaultFieldSpecified = true,
                         ServiceDescriptions = new LocalizedName[]{ new LocalizedName { Language = options.Metadata.AttributeConsumingService.Language,
                             Value =options.Metadata.AttributeConsumingService.ServiceDescriptions } },
@@ -127,16 +128,20 @@ namespace Saml2Authentication
             {
                 EncryptionCertificate = options.EncryptingCertificate
             };
-            bsm.AssertionConsumerService = GetAssertionConsumerService(options.ResponseProtocolBinding, options.CallbackPath, request);
-            bsm.SingleLogoutServiceEndpoint = GetSingleLogoutServiceEndpoint(options.ResponseLogoutBinding, options.SignOutPath, request);
+            bsm.AssertionConsumerService = GetAssertionConsumerService(options.ResponseProtocolBinding, options.CallbackPath, request, options.AssertionConsumerServiceUrl);
+            bsm.SingleLogoutServiceEndpoint = GetSingleLogoutServiceEndpoint(options.ResponseLogoutBinding, options.SignOutPath, request, options.SingleLogoutServiceUrl);
 
             return bsm;
         }
 
         private static IndexedEndpoint GetAssertionConsumerService(Saml2ResponseProtocolBinding responseProtocolBinding,
-           PathString callbackPath, HttpRequest request)
+           PathString callbackPath, HttpRequest request, Uri assertionConsumerUrl = null)
         {
             var url = request.Scheme + "://" + request.Host.Value + callbackPath;
+            if (assertionConsumerUrl != null)
+            {
+                url = assertionConsumerUrl.AbsoluteUri;
+            }
 
             // if post
             if (responseProtocolBinding == Saml2ResponseProtocolBinding.FormPost)
@@ -156,9 +161,14 @@ namespace Saml2Authentication
         }
 
         private static IndexedEndpoint GetSingleLogoutServiceEndpoint(Saml2ResponseLogoutBinding responseLogoutBinding,
-            PathString signoutPath, HttpRequest request)
+            PathString signoutPath, HttpRequest request, Uri singleLogoutServiceUrl = null)
         {
             var url = request.Scheme + "://" + request.Host.Value + signoutPath;
+
+            if (singleLogoutServiceUrl != null)
+            {
+                url = singleLogoutServiceUrl.AbsoluteUri;
+            }
 
             // if post
             if (responseLogoutBinding == Saml2ResponseLogoutBinding.FormPost)

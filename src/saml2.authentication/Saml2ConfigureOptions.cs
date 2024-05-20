@@ -98,6 +98,7 @@ namespace Saml2Authentication
             options.ResponseLogoutBinding = options.ResponseLogoutBinding;
             options.ResponseProtocolBinding = options.ResponseProtocolBinding;
             options.Saml2CookieName = options.Saml2CookieName;
+            options.SingleLogoutServiceUrl = options.SingleLogoutServiceUrl;
             options.SignOutPath = options.SignOutPath.Value;
             options.SigningCertificate = options.SigningCertificate;
             options.SigningCertificateHashAlgorithmName = options.SigningCertificateHashAlgorithmName;
@@ -132,6 +133,7 @@ namespace Saml2Authentication
         }
 
         /// <inheritdoc />
+        
         public void Configure(Saml2Options options)
         {
             Configure(Options.DefaultName, options);
