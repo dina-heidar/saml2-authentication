@@ -203,26 +203,29 @@ namespace Saml2Authentication
             //if post method and needs signature then we need to ign the entire xml
             if (options.AuthenticationMethod == Saml2AuthenticationBehaviour.FormPost)
             {
+                var samlRequest = authnRequestXmlDoc;
                 if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
                 {
-                    var signedAuthnRequestXmlDoc = authnRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
+                    samlRequest = authnRequestXmlDoc.AddXmlSignature(options.SigningCertificate, Elements.Issuer,
                         Namespaces.Assertion, $"#{authnRequestId}");
-
-                    saml2Message.SamlRequest = System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(signedAuthnRequestXmlDoc.OuterXml));
-                    saml2Message.RelayState = relayState.DeflateEncode();//.UrlEncode();
                 }
+                
+                saml2Message.SamlRequest = System.Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(samlRequest.OuterXml));
+                saml2Message.RelayState = relayState.DeflateEncode();//.UrlEncode();
+
                 return saml2Message.BuildFormPost();
             }
             else
             {
                 //redirect binding
+
+                saml2Message.SamlRequest = (authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
+                //relay state
+                saml2Message.RelayState = relayState.DeflateEncode().UrlEncode();
+
                 //if there is a certificate to add a query signature parameter to the authnrequest
                 if (options.SigningCertificate != null && options.AuthenticationRequestSigned)
                 {
-                    saml2Message.SamlRequest = (authnRequestXmlDoc.OuterXml).DeflateEncode().UrlEncode().UpperCaseUrlEncode();
-                    //relay state
-                    saml2Message.RelayState = relayState.DeflateEncode().UrlEncode();
-
                     (var key, var signatureMethod, var keyName) =
                         XmlDocumentExtensions.SetSignatureAlgorithm(options.SigningCertificate);
 
@@ -529,28 +532,21 @@ namespace Saml2Authentication
         /// <summary>
         /// Gets the saml response token.
         /// </summary>
-        /// <param name="base64EncodedSamlResponse">The base64 encoded saml response.</param>
         /// <param name="responseType">Type of the response.</param>
         /// <param name="options">The options.</param>
         /// <returns></returns>
         /// <exception cref="Saml2Authentication.Saml2Exception">Response signature is not valid.</exception>
-        public ResponseType GetSamlResponseToken(string base64EncodedSamlResponse,
+        public Saml2ParsedResponseType GetSamlResponseToken(
             string responseType, Saml2Options options)
         {
+            var rawSamlResponse = DecodeSamlResponseFromBase64EncodedString();
             var doc = new XmlDocument
             {
                 XmlResolver = null,
                 PreserveWhitespace = true
             };
 
-            if (base64EncodedSamlResponse.Contains("%"))
-            {
-                base64EncodedSamlResponse = HttpUtility.UrlDecode(base64EncodedSamlResponse);
-            }
-
-            byte[] bytes = Convert.FromBase64String(base64EncodedSamlResponse);
-            string samlResponseString = Encoding.UTF8.GetString(bytes);
-            doc.LoadXml(samlResponseString);
+            doc.LoadXml(rawSamlResponse);
 
             if (options.RequireMessageSigned)
             {
@@ -560,8 +556,10 @@ namespace Saml2Authentication
                 }
             }
 
-            return DeSerializeToClass<ResponseType>(samlResponseString,
-           responseType, Saml2Constants.Namespaces.Protocol, false);
+            var response = DeSerializeToClass<ResponseType>(rawSamlResponse, responseType, Saml2Constants.Namespaces.Protocol, false);
+            return new Saml2ParsedResponseType(
+                response,
+                rawSamlResponse);
         }
 
         /// <summary>
@@ -571,7 +569,7 @@ namespace Saml2Authentication
         /// <param name="options">The options.</param>
         /// <returns></returns>
         /// <exception cref="Saml2Authentication.Saml2Exception">Response signature is not valid.</exception>
-        public ResponseType GetArtifactResponseToken(string envelope, Saml2Options options)
+        public Saml2ParsedResponseType GetArtifactResponseToken(string envelope, Saml2Options options)
         {
             var reponseEnvelope = DeSerializeToClass<Envelope>(envelope);
 
@@ -596,7 +594,9 @@ namespace Saml2Authentication
                 }
             }
             var samlResponseType = DeSerializeToClass<ResponseType>(samlResponseElement.OuterXml);
-            return samlResponseType;
+            return new Saml2ParsedResponseType(
+                samlResponseType,
+                envelope);
         }
 
         /// <summary>
@@ -747,6 +747,21 @@ namespace Saml2Authentication
         #endregion
 
         #region Private 
+        /// <summary>
+        /// Decodes the SamlResponse, which is base64 encoded
+        /// </summary>
+        /// <returns>The raw Saml response</returns>
+        private string DecodeSamlResponseFromBase64EncodedString()
+        {
+            if (SamlResponse.Contains("%"))
+            {
+                SamlResponse = HttpUtility.UrlDecode(SamlResponse);
+            }
+
+            var bytes = Convert.FromBase64String(SamlResponse);
+            var samlResponseString = Encoding.UTF8.GetString(bytes);
+            return samlResponseString;
+        }
 
         /// <summary>
         /// Gets the requested authn context.

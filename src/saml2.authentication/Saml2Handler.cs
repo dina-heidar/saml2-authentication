@@ -22,12 +22,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using System.Xml;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -66,7 +68,7 @@ namespace Saml2Authentication
         {
             Saml2Message saml2Message = null;
             AuthenticationProperties properties = null;
-            ResponseType responseToken;
+            Saml2ParsedResponseType parsedSamlMessage;
 
             if (HttpMethods.IsGet(Request.Method))
             {
@@ -156,16 +158,14 @@ namespace Saml2Authentication
 
                     var artifactResolutionRequest = artifactResolveReceivedContext.ArtifactResolutionRequest;
 
-                    responseToken = await RedeemFromArtifactResolveServiceAsync(saml2Message);
+                    parsedSamlMessage = await RedeemFromArtifactResolveServiceAsync(saml2Message);
                 }
-
                 else
                 {
                     _logger.LogDebug($"Read Saml response and vaidate signature if needed.");
 
                     //read saml response and vaidate signature if needed
-                    responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse,
-                        Saml2Constants.ResponseTypes.AuthnResponse, Options);
+                    parsedSamlMessage = saml2Message.GetSamlResponseToken(Saml2Constants.ResponseTypes.AuthnResponse, Options);
                 }
 
                 //since this is a solicited login (sent from challenge)
@@ -177,13 +177,13 @@ namespace Saml2Authentication
                 Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CookieName);
 
                 //validate it is not a replay attack by comparing inResponseTo values
-                saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
+                saml2Message.CheckIfReplayAttack(parsedSamlMessage.Response.InResponseTo, inResponseToCookieValue);
 
                 //check what the Idp response is -if it was successful or not
-                saml2Message.CheckStatus(responseToken);
+                saml2Message.CheckStatus(parsedSamlMessage.Response);
 
                 //get the token and decrypt it if it was encrypted
-                var token = saml2Message.GetToken(responseToken, Options.EncryptingCertificate);
+                var token = saml2Message.GetToken(parsedSamlMessage.Response, Options.EncryptingCertificate);
 
                 _logger.LogDebug("Extracting Saml assertion.");
                 //get the decrypted assertion section 
@@ -252,7 +252,7 @@ namespace Saml2Authentication
 
                 _logger.LogDebug("Setting Saml token validators.");
 
-                var issuers = new[] { responseToken.Issuer.Value };
+                var issuers = new[] { parsedSamlMessage.Response.Issuer.Value };
                 tvp.ValidateIssuerSigningKey = Options.WantAssertionsSigned;
                 tvp.ValidateTokenReplay = !Options.IsPassive;
                 tvp.ValidateIssuer = Options.ValidateIssuer;
@@ -268,11 +268,28 @@ namespace Saml2Authentication
                     tvp.RequireSignedTokens = false;
                 }
 
-                if (validator.CanReadToken(token))
+                using (var sr = new StringReader(parsedSamlMessage.RawResponse))
                 {
-                    _logger.LogDebug("Validating Saml token.");
-                    principal = validator.ValidateToken(token, tvp, out parsedToken);
-                    _logger.TokenValidatedHandledResponse();
+                    var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit };
+                    using (var reader = XmlDictionaryReader.CreateDictionaryReader(XmlReader.Create(sr, settings)))
+                    {
+                        if (reader.IsStartElement(Saml2Constants.Elements.Response, Saml2Constants.Namespaces.Protocol))
+                        {
+                            while (reader.Read())
+                            {
+                                if (reader.IsStartElement())
+                                {
+                                    if (validator.CanReadToken(reader))
+                                    {
+                                        _logger.LogDebug("Validating Saml token.");
+                                        principal = validator.ValidateToken(reader, tvp, out parsedToken);
+                                        _logger.TokenValidatedHandledResponse();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if (principal == null)
@@ -470,7 +487,7 @@ namespace Saml2Authentication
         {
             Saml2Message saml2Message = null;
             AuthenticationProperties properties = null;
-            ResponseType responseToken;
+            Saml2ParsedResponseType parsedSamlMessage;
 
             //redirect
             if (HttpMethods.IsGet(Request.Method))
@@ -547,15 +564,14 @@ namespace Saml2Authentication
 
                     var artifactResolutionRequest = artifactResolveReceivedContext.ArtifactResolutionRequest;
 
-                    responseToken = await RedeemFromArtifactResolveServiceAsync(saml2Message);
+                    parsedSamlMessage = await RedeemFromArtifactResolveServiceAsync(saml2Message);
                 }
 
                 else
                 {
                     _logger.LogDebug($"Read Saml logout response and vaidate signature if needed.");
                     //read saml logout response and vaidate signature if needed
-                    responseToken = saml2Message.GetSamlResponseToken(saml2Message.SamlResponse,
-                        Saml2Constants.ResponseTypes.LogoutResponse, Options);
+                    parsedSamlMessage = saml2Message.GetSamlResponseToken(Saml2Constants.ResponseTypes.LogoutResponse, Options);
                 }
 
                 //since this is a solicited login (sent from challenge)
@@ -564,14 +580,14 @@ namespace Saml2Authentication
                 var inResponseToCookieValue = requestCookies[requestCookies.Keys.FirstOrDefault(key => key.StartsWith(Options.Saml2CookieName))];
 
                 //validate it is not a replay attack by comparing inResponseTo values
-                saml2Message.CheckIfReplayAttack(responseToken.InResponseTo, inResponseToCookieValue);
+                saml2Message.CheckIfReplayAttack(parsedSamlMessage.Response.InResponseTo, inResponseToCookieValue);
 
                 //cleanup and remove existing saml cookies
                 //no need for it since we checked the inResponseId values
                 Response.DeleteAllSaml2RequestCookies(Context.Request, Options.Saml2CookieName);
 
                 //check what the Idp response is -if it was successful or not
-                saml2Message.CheckStatus(responseToken);
+                saml2Message.CheckStatus(parsedSamlMessage.Response);
 
                 if (Context.User.Identity.IsAuthenticated)
                 {
@@ -690,7 +706,7 @@ namespace Saml2Authentication
         }
 
 
-        protected virtual async Task<ResponseType> RedeemFromArtifactResolveServiceAsync(Saml2Message saml2Message)
+        protected virtual async Task<Saml2ParsedResponseType> RedeemFromArtifactResolveServiceAsync(Saml2Message saml2Message)
         {
             _logger.RedeemingArtifactForAssertion();
 
@@ -704,7 +720,7 @@ namespace Saml2Authentication
 
             //artifact ID value which needs to be included in the artifact resolve request
             //we will need this to create the same session cookie as well
-            var authnRequestId2 = UniqueId.CreateRandomId();
+            var authnRequestId2 = Microsoft.IdentityModel.Tokens.UniqueId.CreateRandomId();
 
             var artifactResolveRequest = new Saml2Message()
                 .CreateArtifactResolutionSigninRequest(Options, authnRequestId2, saml2Message.SamlArt);

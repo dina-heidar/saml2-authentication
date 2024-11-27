@@ -62,6 +62,7 @@ namespace Saml2Authentication
         public static class Elements
         {
             public const string Issuer = "Issuer";
+            public const string Response = "Response";
         }
 
         public static class Artifacts
