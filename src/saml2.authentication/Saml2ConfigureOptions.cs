@@ -28,7 +28,7 @@ using Microsoft.Extensions.Options;
 namespace Saml2Authentication
 {
     internal sealed class Saml2ConfigureOptions : IConfigureNamedOptions<Saml2Options>
-    {
+    {        
         private static readonly Func<string, TimeSpan> _invariantTimeSpanParse = (string timespanString) => TimeSpan.Parse(timespanString, CultureInfo.InvariantCulture);
         private static readonly Func<string, TimeSpan?> _invariantNullableTimeSpanParse = (string timespanString) => TimeSpan.Parse(timespanString, CultureInfo.InvariantCulture);
 

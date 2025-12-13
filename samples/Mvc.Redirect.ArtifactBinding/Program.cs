@@ -54,19 +54,19 @@ public class Program
 
             options.CreateMetadataFile = true;
 
-            if (environment.IsDevelopment())
-            {
-                options.SigningCertificate = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
-                     "0n3wh33L", X509KeyStorageFlags.Exportable);
-                options.EncryptingCertificate = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
-                     "0n3wh33L", X509KeyStorageFlags.Exportable);
-            }
-            else
-            {
-                //if you want to search in cert store -can be used for production
-                options.SigningCertificate = options.EncryptingCertificate =
-                X509.LocalMachine.My.FindBySerialNumber.Find("[Serial number of certificate]", true, true);
-            };
+            //if (environment.IsDevelopment())
+            //{
+            //    options.SigningCertificate = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
+            //         "0n3wh33L", X509KeyStorageFlags.Exportable);
+            //    options.EncryptingCertificate = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
+            //         "0n3wh33L", X509KeyStorageFlags.Exportable);
+            //}
+            //else
+            //{
+            //    //if you want to search in cert store -can be used for production
+            //    options.SigningCertificate = options.EncryptingCertificate =
+            //    X509.LocalMachine.My.FindBySerialNumber.Find("[Serial number of certificate]", true, true);
+            //};
             options.Events.OnTicketReceived = context =>
             {
                 return Task.FromResult(0);
