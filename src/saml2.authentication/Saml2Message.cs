@@ -174,6 +174,8 @@ namespace Saml2Authentication
                 AssertionConsumerServiceIndex = (options.AssertionConsumerServiceIndex != null ? options.AssertionConsumerServiceIndex.Value : (ushort)0),
                 AssertionConsumerServiceIndexSpecified = options.AssertionConsumerServiceIndex.HasValue,
                 AssertionConsumerServiceURL = options.AssertionConsumerServiceUrl?.AbsoluteUri,
+                AttributeConsumingServiceIndex = (options.AttributeConsumingServiceIndex != null ? options.AttributeConsumingServiceIndex.Value : (ushort)0),
+                AttributeConsumingServiceIndexSpecified = options.AttributeConsumingServiceIndex.HasValue,
                 ProtocolBinding = GetProtocolBinding((Saml2ResponseProtocolBinding)options.ResponseProtocolBinding),
                 IssueInstant = DateTime.UtcNow,
             };

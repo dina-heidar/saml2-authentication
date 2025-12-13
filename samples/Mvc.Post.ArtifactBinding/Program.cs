@@ -31,7 +31,7 @@ public class Program
         {
             options.AuthenticationScheme = Saml2Defaults.AuthenticationScheme;
             options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            options.MetadataAddress = "https://adfs2.la.gov/federationmetadata/2007-06/federationmetadata.xml";
+            options.MetadataAddress = "https://adfs.la.gov/federationmetadata/2007-06/federationmetadata.xml";
             options.ForceAuthn = true;
             options.VerifySignatureOnly = false;
 
@@ -45,7 +45,9 @@ public class Program
             options.AuthenticationMethod = Saml2AuthenticationBehaviour.FormPost; //front channel
             options.RequestedAuthnContext = RequestedAuthnContextTypes.FormsAuthentication();
             options.ResponseProtocolBinding = Saml2ResponseProtocolBinding.Artifact; //send back artifact
-            options.AssertionConsumerServiceUrl = new Uri("https://localhost:5001/saml2-artifact");
+            options.AssertionConsumerServiceUrl = new Uri("https://ecs.my.la.gov/art");
+
+            options.CreateMetadataFile = true;
 
             //logout
             options.LogoutMethod = Saml2LogoutBehaviour.FormPost;
@@ -55,19 +57,19 @@ public class Program
             options.ValidateArtifact = true;
             options.CallbackPath = new PathString("/saml2-artifact");
 
-            if (environment.IsDevelopment())
-            {
-                options.SigningCertificate = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
-                     "0n3wh33L", X509KeyStorageFlags.Exportable);
-                options.EncryptingCertificate = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
-                     "0n3wh33L", X509KeyStorageFlags.Exportable);
-            }
-            else
-            {
-                //if you want to search in cert store -can be used for production
-                options.SigningCertificate = options.EncryptingCertificate =
-                X509.LocalMachine.My.FindBySerialNumber.Find("[Serial number of certificate]", true, true);
-            }
+            //if (environment.IsDevelopment())
+            //{
+            //    options.SigningCertificate = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
+            //         "0n3wh33L", X509KeyStorageFlags.Exportable);
+            //    options.EncryptingCertificate = new X509Certificate2("../SharedCertificates/dev.govalerts.la.gov.pfx",
+            //         "0n3wh33L", X509KeyStorageFlags.Exportable);
+            //}
+            //else
+            //{
+            //    //if you want to search in cert store -can be used for production
+            //    options.SigningCertificate = options.EncryptingCertificate =
+            //    X509.LocalMachine.My.FindBySerialNumber.Find("[Serial number of certificate]", true, true);
+            //}
             options.Events.OnTicketReceived = context =>
             {
                 return Task.FromResult(0);

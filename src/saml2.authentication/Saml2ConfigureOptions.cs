@@ -28,7 +28,7 @@ using Microsoft.Extensions.Options;
 namespace Saml2Authentication
 {
     internal sealed class Saml2ConfigureOptions : IConfigureNamedOptions<Saml2Options>
-    {
+    {        
         private static readonly Func<string, TimeSpan> _invariantTimeSpanParse = (string timespanString) => TimeSpan.Parse(timespanString, CultureInfo.InvariantCulture);
         private static readonly Func<string, TimeSpan?> _invariantNullableTimeSpanParse = (string timespanString) => TimeSpan.Parse(timespanString, CultureInfo.InvariantCulture);
 
@@ -68,6 +68,7 @@ namespace Saml2Authentication
             //saml2 options
             options.AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex;
             options.AssertionConsumerServiceUrl = options.AssertionConsumerServiceUrl;
+            options.AttributeConsumingServiceIndex = options.AttributeConsumingServiceIndex;
             options.AuthenticationMethod = options.AuthenticationMethod;
             options.AuthenticationRequestSigned = options.AuthenticationRequestSigned;
             options.AuthenticationScheme = options.AuthenticationScheme;
@@ -97,6 +98,7 @@ namespace Saml2Authentication
             options.ResponseLogoutBinding = options.ResponseLogoutBinding;
             options.ResponseProtocolBinding = options.ResponseProtocolBinding;
             options.Saml2CookieName = options.Saml2CookieName;
+            options.SingleLogoutServiceUrl = options.SingleLogoutServiceUrl;
             options.SignOutPath = options.SignOutPath.Value;
             options.SigningCertificate = options.SigningCertificate;
             options.SigningCertificateHashAlgorithmName = options.SigningCertificateHashAlgorithmName;
@@ -131,6 +133,7 @@ namespace Saml2Authentication
         }
 
         /// <inheritdoc />
+        
         public void Configure(Saml2Options options)
         {
             Configure(Options.DefaultName, options);

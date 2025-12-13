@@ -60,6 +60,7 @@ namespace Saml2Authentication
 
             //saml request
             RequireHttpsMetadata = true;
+            AuthenticationRequestSigned = false;
             ForceAuthn = false;
             NameIdPolicy = new NameIdPolicy
             {
@@ -131,6 +132,16 @@ namespace Saml2Authentication
         /// </value>
         public Uri AssertionConsumerServiceUrl { get; set; }
         /// <summary>
+        /// Gets or sets the index of the attribute consuming service index
+        /// in the AuthnRequest. If this value is populated, 
+        /// the IdP will look up the 'AttributeConsumingServiceIndex' in the SP 
+        /// metadata and send the requested claims that fall under it.
+        /// </summary>
+        /// <value>
+        /// The index of the attribute consuming service.
+        /// </value>
+        public ushort? AttributeConsumingServiceIndex { get; set; }
+        /// <summary>
         /// Gets or sets the authentication HTTP method.
         /// </summary>
         /// <value>
@@ -151,7 +162,6 @@ namespace Saml2Authentication
         /// The authentication scheme.
         /// </value>
         public string AuthenticationScheme { get; set; }
-
         /// <summary>
         /// Gets or sets a value indicating whether [create metadata file]. 
         /// The defalut is set to "false".
@@ -229,7 +239,7 @@ namespace Saml2Authentication
 
         /// <summary>
         /// Gets or sets a value indicating whether authentication is required.
-        /// Default value is set to true
+        /// Default value is set to false
         /// </summary>
         /// <value>
         ///   <c>true</c> if [force authn]; otherwise, <c>false</c>.
@@ -286,7 +296,7 @@ namespace Saml2Authentication
         /// <value>
         /// The default value is <c>true</c> if [logout request signed]; otherwise, <c>false</c>.
         /// </value>
-        public bool LogoutRequestSigned { get; set; }
+        public bool LogoutRequestSigned { get; set; }        
 
         /// <summary>
         /// Gets or sets the 'max_age'. If set the 'max_age' parameter 
@@ -393,6 +403,16 @@ namespace Saml2Authentication
         /// The name of the saml2 core cookie.
         /// </value>
         public string Saml2CookieName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the single logout service URL.
+        /// This will override the SignOutPath value.   
+        /// </summary>
+        /// <value>
+        /// The single logout service URL.
+        /// </value>
+        public Uri SingleLogoutServiceUrl { get; set; }
+
         /// <summary>
         /// Gets or sets the remote sign out path. The default value is "/saml2-signout"
         /// This is used by the Idp to POST back to after it logs the user out of the Idp session.
